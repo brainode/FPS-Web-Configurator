@@ -147,6 +147,7 @@ Recommended minimum changes:
 - change game ports if they conflict with anything already running
 
 On a normal Linux VPS, leave `DOCKER_HOST` empty. The stack uses `/var/run/docker.sock` directly.
+On rootless Docker, set `DOCKER_SOCKET_PATH=/run/user/<uid>/docker.sock` in `.env` and still leave `DOCKER_HOST` empty.
 On ARM64 VPS hosts, keep `GAME_SERVER_PLATFORM=linux/amd64` as-is unless you know a specific game image supports ARM natively.
 
 ### 4. Build and start
@@ -307,6 +308,8 @@ If Docker access fails on Linux:
 - verify `/var/run/docker.sock` is available
 - make sure Docker Engine is running
 - keep `DOCKER_HOST` empty unless you explicitly use a TCP Docker endpoint
+- if you use rootless Docker, set `DOCKER_SOCKET_PATH=/run/user/<uid>/docker.sock` in `.env` and recreate `docker-agent`
+- on SELinux-enabled hosts, `docker-agent` runs with `security_opt: label=disable` so it can talk to the mounted Docker socket
 
 ## Development
 

@@ -26,6 +26,8 @@ services:
       context: .
       dockerfile: services/docker-agent/Dockerfile
     image: docker-agent:latest
+    security_opt:
+      - label=disable
     environment:
       DOCKER_AGENT_PORT: "8081"
       WARSOW_IMAGE: "${WARSOW_IMAGE:-warsow-server:latest}"
@@ -54,7 +56,7 @@ services:
       # On Windows with Docker Desktop you may need to enable
       # "Allow the default Docker socket to be used" in Docker Desktop settings,
       # OR set DOCKER_HOST=tcp://host.docker.internal:2375 in .env instead.
-      - /var/run/docker.sock:/var/run/docker.sock
+      - "${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock"
     networks:
       - panel-net
     restart: unless-stopped
