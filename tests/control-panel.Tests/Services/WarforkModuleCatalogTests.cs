@@ -37,23 +37,31 @@ public sealed class WarforkModuleCatalogTests
     }
 
     [Fact]
-    public void NormalizeMapSelection_RemovesUnsupportedMaps_ForStockRestrictedGametype()
+    public void NormalizeMapSelection_PreservesAnyValidStockMaps_ForSelectedGametype()
     {
-        var maps = WarforkModuleCatalog.NormalizeMapSelection(["return", "wfdm1"], "ca", fillDefaultsWhenEmpty: false);
+        var maps = WarforkModuleCatalog.NormalizeMapSelection(["wfda1", "wfdm1"], "ffa", fillDefaultsWhenEmpty: false);
 
-        Assert.Equal(["return"], maps);
+        Assert.Equal(["wfda1", "wfdm1"], maps);
     }
 
     [Theory]
     [InlineData("ca", "return", true)]
-    [InlineData("ca", "wfdm1", false)]
-    [InlineData("ctf", "wfctf3", true)]
-    [InlineData("ctftactics", "wfctf3", false)]
-    [InlineData("bomb", "wfbomb2", true)]
-    [InlineData("rekt", "wfda5", true)]
-    public void IsSupportedMapForGametype_UsesCatalogRules(string gametype, string mapKey, bool expected)
+    [InlineData("ca", "wfdm1", true)]
+    [InlineData("ffa", "wfda1", true)]
+    [InlineData("ctf", "wfda5", true)]
+    [InlineData("rekt", "wfctf3", true)]
+    [InlineData("rekt", "missing-map", false)]
+    public void IsSupportedMapForGametype_AllowsAnyKnownStockMap(string gametype, string mapKey, bool expected)
     {
         Assert.Equal(expected, WarforkModuleCatalog.IsSupportedMapForGametype(mapKey, gametype));
+    }
+
+    [Fact]
+    public void GetUnsupportedMapsForGametype_ReturnsEmpty_ForMixedStockPools()
+    {
+        var unsupportedMaps = WarforkModuleCatalog.GetUnsupportedMapsForGametype(["wfda1", "wfdm1", "wfctf3"], "ffa");
+
+        Assert.Empty(unsupportedMaps);
     }
 
     [Theory]

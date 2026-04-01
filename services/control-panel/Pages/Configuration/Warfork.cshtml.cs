@@ -66,9 +66,6 @@ public sealed class WarforkModel(
     public bool IsMapSelected(string mapKey) =>
         Input.SelectedMaps.Contains(mapKey, StringComparer.OrdinalIgnoreCase);
 
-    public bool IsMapSupportedForSelectedGametype(string mapKey) =>
-        WarforkModuleCatalog.IsSupportedMapForGametype(mapKey, Input.Gametype);
-
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         await LoadAsync(cancellationToken);
@@ -109,14 +106,13 @@ public sealed class WarforkModel(
     {
         var existingConfiguration = await configurationStore.GetOrCreateAsync(GameKey, cancellationToken);
         var existingSettings = WarforkConfigurationSerializer.Deserialize(existingConfiguration.JsonContent);
-        var unsupportedMaps = WarforkModuleCatalog.GetUnsupportedMapsForGametype(Input.SelectedMaps, Input.Gametype);
 
         NormalizeInput(fillDefaultsWhenEmpty: false);
         var effectiveSettings = Input.ToSettings(existingSettings);
 
         ModelState.ClearValidationState(nameof(Input));
         TryValidateModel(Input, nameof(Input));
-        ValidateInput(unsupportedMaps);
+        ValidateInput();
 
         if (!ModelState.IsValid)
         {
@@ -178,7 +174,7 @@ public sealed class WarforkModel(
             allowEmpty: !fillDefaultsWhenEmpty && Input.SelectedMaps.Count == 0);
     }
 
-    private void ValidateInput(IReadOnlyList<string> unsupportedMaps)
+    private void ValidateInput()
     {
         if (!WarforkModuleCatalog.IsValidGametype(Input.Gametype))
         {
@@ -204,13 +200,6 @@ public sealed class WarforkModel(
         if (invalidMaps.Length > 0)
         {
             ModelState.AddModelError("Input.SelectedMaps", $"Unsupported maps: {string.Join(", ", invalidMaps)}");
-        }
-
-        if (unsupportedMaps.Count > 0)
-        {
-            ModelState.AddModelError(
-                "Input.SelectedMaps",
-                $"These maps do not support the '{Input.Gametype}' ruleset in stock Warfork: {string.Join(", ", unsupportedMaps)}");
         }
 
         if (Input.SelectedMaps.Count == 0)
