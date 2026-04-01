@@ -64,7 +64,10 @@ services:
     build:
       context: .
       dockerfile: services/quake-live-server/Dockerfile
+      args:
+        GAME_SERVER_PLATFORM: "${GAME_SERVER_PLATFORM:-linux/amd64}"
     image: quake-live-server:latest
+    platform: "${GAME_SERVER_PLATFORM:-linux/amd64}"
     profiles:
       - game
     ports:
@@ -82,7 +85,10 @@ services:
     build:
       context: .
       dockerfile: services/warsow-server/Dockerfile
+      args:
+        GAME_SERVER_PLATFORM: "${GAME_SERVER_PLATFORM:-linux/amd64}"
     image: warsow-server:latest
+    platform: "${GAME_SERVER_PLATFORM:-linux/amd64}"
     profiles:
       - game
     ports:
@@ -99,7 +105,10 @@ services:
     build:
       context: .
       dockerfile: services/warfork-server/Dockerfile
+      args:
+        GAME_SERVER_PLATFORM: "${GAME_SERVER_PLATFORM:-linux/amd64}"
     image: warfork-server:latest
+    platform: "${GAME_SERVER_PLATFORM:-linux/amd64}"
     profiles:
       - game
     ports:
@@ -116,7 +125,10 @@ services:
     build:
       context: .
       dockerfile: services/reflex-arena-server/Dockerfile
+      args:
+        GAME_SERVER_PLATFORM: "${GAME_SERVER_PLATFORM:-linux/amd64}"
     image: reflex-arena-server:latest
+    platform: "${GAME_SERVER_PLATFORM:-linux/amd64}"
     profiles:
       - game
     ports:

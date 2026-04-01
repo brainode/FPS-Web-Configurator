@@ -1,4 +1,6 @@
-FROM ubuntu:24.04 AS warfork-dist
+ARG GAME_SERVER_PLATFORM=linux/amd64
+
+FROM --platform=$GAME_SERVER_PLATFORM ubuntu:24.04 AS warfork-dist
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG WARFORK_APP_ID=1136510
@@ -26,7 +28,7 @@ RUN /opt/steamcmd/steamcmd.sh \
     +app_update ${WARFORK_APP_ID} validate \
     +quit
 
-FROM debian:bookworm-slim
+FROM --platform=$GAME_SERVER_PLATFORM debian:bookworm-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 

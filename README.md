@@ -49,6 +49,7 @@ At runtime the flow is:
 - Docker Engine 24+ or Docker Desktop
 - Docker Compose plugin
 - Linux VPS or local machine with Docker
+- Current game server images run as `linux/amd64` by default, because the upstream dedicated binaries are x86/x86_64-only
 - Open outbound internet access during build, because some game images are downloaded from Steam or upstream archives
 
 ## Quick Start
@@ -146,6 +147,7 @@ Recommended minimum changes:
 - change game ports if they conflict with anything already running
 
 On a normal Linux VPS, leave `DOCKER_HOST` empty. The stack uses `/var/run/docker.sock` directly.
+On ARM64 VPS hosts, keep `GAME_SERVER_PLATFORM=linux/amd64` as-is unless you know a specific game image supports ARM natively.
 
 ### 4. Build and start
 

@@ -21,12 +21,14 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 AGENT_PORT = int(os.environ.get("DOCKER_AGENT_PORT", "8081"))
+GAME_SERVER_PLATFORM = os.environ.get("GAME_SERVER_PLATFORM", "linux/amd64")
 
 # Per-game container configuration driven by environment variables.
 GAME_CONFIGS = {
     "quake-live": {
         "container_name": "quake-live-server",
         "image": os.environ.get("QL_IMAGE", "quake-live-server:latest"),
+        "platform": GAME_SERVER_PLATFORM,
         "ports": [
             f"{os.environ.get('QL_SERVER_PORT', '27970')}:27960/udp",
             f"{os.environ.get('QL_SERVER_PORT', '27970')}:27960/tcp",
@@ -53,6 +55,7 @@ GAME_CONFIGS = {
     "reflex-arena": {
         "container_name": "reflex-arena-server",
         "image": os.environ.get("REFLEX_IMAGE", "reflex-arena-server:latest"),
+        "platform": GAME_SERVER_PLATFORM,
         "ports": [
             f"{os.environ.get('REFLEX_SERVER_PORT', '25787')}:25787/udp",
             f"{os.environ.get('REFLEX_SERVER_PORT', '25787')}:25787/tcp",
@@ -78,6 +81,7 @@ GAME_CONFIGS = {
     "warsow": {
         "container_name": "warsow-server",
         "image": os.environ.get("WARSOW_IMAGE", "warsow-server:latest"),
+        "platform": GAME_SERVER_PLATFORM,
         "ports": [
             f"{os.environ.get('WARSOW_SERVER_PORT', '44400')}:44400/udp",
             f"{os.environ.get('WARSOW_HTTP_PORT', '44444')}:44444/tcp",
@@ -89,6 +93,7 @@ GAME_CONFIGS = {
     "warfork": {
         "container_name": "warfork-server",
         "image": os.environ.get("WARFORK_IMAGE", "warfork-server:latest"),
+        "platform": GAME_SERVER_PLATFORM,
         "ports": [
             f"{os.environ.get('WARFORK_SERVER_PORT', '44500')}:44400/udp",
             f"{os.environ.get('WARFORK_HTTP_PORT', '44544')}:44444/tcp",
@@ -173,6 +178,9 @@ def _start(config, env=None):
     _docker("rm", "-f", name)  # Remove any stopped or dead container.
 
     args = ["run", "-d", "--name", name, "--restart", "unless-stopped"]
+    platform = config.get("platform")
+    if platform:
+        args += ["--platform", platform]
     for port in config.get("ports", []):
         args += ["-p", port]
     for vol in config.get("volumes", []):

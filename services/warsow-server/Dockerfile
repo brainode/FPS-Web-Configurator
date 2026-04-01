@@ -1,4 +1,6 @@
-FROM debian:bookworm-slim AS warsow-dist
+ARG GAME_SERVER_PLATFORM=linux/amd64
+
+FROM --platform=$GAME_SERVER_PLATFORM debian:bookworm-slim AS warsow-dist
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG WARSOW_DIST_URL=https://warsow.net/warsow-2.1.2.tar.gz
@@ -18,7 +20,7 @@ RUN set -eux; \
     cp -a "$extracted_dir"/. /warsow-dist/; \
     rm -rf /tmp/warsow.tar.gz /tmp/warsow-src
 
-FROM debian:bookworm-slim
+FROM --platform=$GAME_SERVER_PLATFORM debian:bookworm-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 

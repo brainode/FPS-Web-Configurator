@@ -1,4 +1,6 @@
-FROM ubuntu:24.04
+ARG GAME_SERVER_PLATFORM=linux/amd64
+
+FROM --platform=$GAME_SERVER_PLATFORM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
