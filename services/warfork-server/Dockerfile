@@ -18,6 +18,8 @@ RUN mkdir -p /opt/steamcmd \
  && tar -xzf /tmp/steamcmd_linux.tar.gz -C /opt/steamcmd \
  && rm /tmp/steamcmd_linux.tar.gz
 
+# Warfork resolves correctly without platform overrides; forcing linux/64 can
+# make SteamCMD fail with "Missing configuration" on some hosts.
 RUN /opt/steamcmd/steamcmd.sh \
     +force_install_dir /opt/warfork \
     +login anonymous \

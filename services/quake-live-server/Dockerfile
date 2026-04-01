@@ -24,6 +24,7 @@ RUN mkdir -p /opt/steamcmd \
  && tar -xzf /tmp/steamcmd_linux.tar.gz -C /opt/steamcmd \
  && rm /tmp/steamcmd_linux.tar.gz
 
+# Quake Live dedicated files are published through the Linux 32-bit depot.
 RUN /opt/steamcmd/steamcmd.sh \
     +@sSteamCmdForcePlatformType linux \
     +@sSteamCmdForcePlatformBitness 32 \

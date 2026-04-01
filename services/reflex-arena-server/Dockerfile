@@ -23,7 +23,11 @@ RUN mkdir -p /opt/steamcmd \
  && tar -xzf /tmp/steamcmd_linux.tar.gz -C /opt/steamcmd \
  && rm /tmp/steamcmd_linux.tar.gz
 
+# Reflex needs an explicit Linux 64-bit target; otherwise SteamCMD may return
+# "Missing configuration" during app_update.
 RUN /opt/steamcmd/steamcmd.sh \
+    +@sSteamCmdForcePlatformType linux \
+    +@sSteamCmdForcePlatformBitness 64 \
     +force_install_dir /opt/reflex-arena \
     +login anonymous \
     +app_update 329740 validate \
