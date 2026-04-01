@@ -1,0 +1,333 @@
+@page
+@model control_panel.Pages.Configuration.WarsowModel
+@{
+    ViewData["Title"] = "Warsow";
+}
+
+<section class="page-shell py-4 py-lg-5">
+    <div class="container-xxl">
+        <div class="page-header d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+            <div>
+                <span class="section-kicker">Warsow</span>
+                <h1 class="page-title mb-2">Server Parameters</h1>
+                <p class="page-subtitle mb-0">Configure match mode, map rotation and access controls from a clean operational workspace.</p>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <div class="status-chip @Model.StatusToneClass">
+                    <span class="status-dot"></span>
+                    <span>@Model.Status.StateLabel</span>
+                </div>
+                <a class="btn btn-outline-light" asp-page="/Index">Back to dashboard</a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+        {
+            <div class="alert alert-success border-0 panel-alert" role="alert">@Model.SuccessMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger border-0 panel-alert" role="alert">@Model.ErrorMessage</div>
+        }
+
+        <div class="panel-card mb-4">
+            <div class="panel-card-header">
+                <span class="section-kicker">Container</span>
+                <h2 class="panel-title">Server control</h2>
+            </div>
+            <div class="panel-card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    @if (Model.CanStart)
+                    {
+                        <form method="post" asp-page-handler="Start">
+                            <button type="submit" class="btn btn-primary btn-lg">Start server</button>
+                        </form>
+                    }
+
+                    @if (Model.CanRestart)
+                    {
+                        <form method="post" asp-page-handler="Restart">
+                            <button type="submit" class="btn btn-outline-warning" data-confirm-restart="true">Restart server</button>
+                        </form>
+                    }
+
+                    @if (Model.CanStop)
+                    {
+                        <form method="post" asp-page-handler="Stop">
+                            <button type="submit" class="btn btn-outline-light">Stop server</button>
+                        </form>
+                    }
+
+                    @if (Model.ShowUnavailableActions)
+                    {
+                        <button type="button" class="btn btn-outline-secondary" disabled>Server actions unavailable</button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="vstack gap-4">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 panel-alert validation-summary"></div>
+
+            <div class="row g-4">
+                <div class="col-12 col-xl-4">
+                    <div class="panel-card h-100">
+                        <div class="panel-card-header">
+                            <span class="section-kicker">Mode</span>
+                            <h2 class="panel-title">Gameplay template</h2>
+                            <p class="panel-text mb-0">Each game mode is a module preset. Later this screen can be swapped for another game without changing the shell.</p>
+                        </div>
+                        <div class="panel-card-body vstack gap-3">
+                            <div>
+                                <label asp-for="Input.Gametype" class="form-label"></label>
+                                <select asp-for="Input.Gametype" class="form-select">
+                                    @foreach (var gametype in Model.GametypeOptions)
+                                    {
+                                        <option value="@gametype.Key">@gametype.Label</option>
+                                    }
+                                </select>
+                                <div class="form-hint">For Warsow, the UI knows which values are toggles, dropdowns and map pools.</div>
+                                <span asp-validation-for="Input.Gametype" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <div class="panel-card h-100">
+                        <div class="panel-card-header">
+                            <span class="section-kicker">Rules</span>
+                            <h2 class="panel-title">Match flags</h2>
+                            <p class="panel-text mb-0">Binary server cvars become simple toggles, so players do not need to remember which value means on or off.</p>
+                        </div>
+                        <div class="panel-card-body">
+                            <div class="rule-toggle-list">
+                                <label class="rule-toggle">
+                                    <input asp-for="Input.Instagib" class="form-check-input" />
+                                    <span>
+                                        <strong>Instagib</strong>
+                                        <small>One-shot rail style rules.</small>
+                                    </span>
+                                </label>
+                                <label class="rule-toggle">
+                                    <input asp-for="Input.Instajump" class="form-check-input" />
+                                    <span>
+                                        <strong>Instajump</strong>
+                                        <small>Keep fast movement options enabled.</small>
+                                    </span>
+                                </label>
+                                <label class="rule-toggle">
+                                    <input asp-for="Input.Instashield" class="form-check-input" />
+                                    <span>
+                                        <strong>Instashield</strong>
+                                        <small>Enable shield for insta sessions.</small>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-sm-6">
+                                    <label asp-for="Input.Scorelimit" class="form-label"></label>
+                                    <input asp-for="Input.Scorelimit" class="form-control" min="0" max="999" />
+                                    <span asp-validation-for="Input.Scorelimit" class="text-danger small"></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label asp-for="Input.Timelimit" class="form-label"></label>
+                                    <input asp-for="Input.Timelimit" class="form-control" min="0" max="240" />
+                                    <span asp-validation-for="Input.Timelimit" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <div class="panel-card h-100">
+                        <div class="panel-card-header">
+                            <span class="section-kicker">Access</span>
+                            <h2 class="panel-title">Control & privacy</h2>
+                            <p class="panel-text mb-0">Sensitive values stay in dedicated fields instead of being buried in a raw config blob.</p>
+                        </div>
+                        <div class="panel-card-body vstack gap-3">
+                            <div>
+                                <label asp-for="Input.RconPassword" class="form-label"></label>
+                                <div class="input-group password-input-group">
+                                    <input id="rcon-password"
+                                           name="Input.RconPassword"
+                                           type="password"
+                                           value="@Model.Input.RconPassword"
+                                           class="form-control"
+                                           autocomplete="new-password"
+                                           placeholder="Set the RCON password" />
+                                    <button type="button"
+                                            class="btn btn-outline-secondary password-toggle"
+                                            data-password-toggle="rcon-password"
+                                            aria-label="Show typed RCON password"
+                                            title="Show typed RCON password">
+                                        <svg viewBox="0 0 24 24" class="password-toggle-icon" aria-hidden="true" focusable="false">
+                                            <path d="M12 5C6.4 5 2.1 8.4 0 12c2.1 3.6 6.4 7 12 7s9.9-3.4 12-7c-2.1-3.6-6.4-7-12-7Zm0 11.2A4.2 4.2 0 1 1 12 7.8a4.2 4.2 0 0 1 0 8.4Zm0-1.9a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="form-hint">Required. The current password is shown above. Type a new one to replace it, or leave it as-is to keep it.</div>
+                                <div class="credential-state">
+                                    <span class="status-chip @Model.RconPasswordStateClass">
+                                        <span class="status-dot"></span>
+                                        <span>@Model.RconPasswordStateLabel</span>
+                                    </span>
+                                    <span class="credential-state-text">@Model.RconPasswordStateHint</span>
+                                </div>
+                                <span asp-validation-for="Input.RconPassword" class="text-danger small"></span>
+                            </div>
+                            <div>
+                                <label asp-for="Input.ServerPassword" class="form-label"></label>
+                                <div class="input-group password-input-group">
+                                    <input id="join-password"
+                                           name="Input.ServerPassword"
+                                           type="password"
+                                           value="@Model.Input.ServerPassword"
+                                           class="form-control"
+                                           autocomplete="new-password"
+                                           placeholder="@(Model.HasJoinPassword ? "Leave empty to keep the join password" : "Optional join password")" />
+                                    <button type="button"
+                                            class="btn btn-outline-secondary password-toggle"
+                                            data-password-toggle="join-password"
+                                            aria-label="Show typed join password"
+                                            title="Show typed join password">
+                                        <svg viewBox="0 0 24 24" class="password-toggle-icon" aria-hidden="true" focusable="false">
+                                            <path d="M12 5C6.4 5 2.1 8.4 0 12c2.1 3.6 6.4 7 12 7s9.9-3.4 12-7c-2.1-3.6-6.4-7-12-7Zm0 11.2A4.2 4.2 0 1 1 12 7.8a4.2 4.2 0 0 1 0 8.4Zm0-1.9a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="form-hint">Optional. Leave the field empty to keep the current lobby password, type a new one to replace it, or clear it explicitly.</div>
+                                <div class="credential-state">
+                                    <span class="status-chip @Model.JoinPasswordStateClass">
+                                        <span class="status-dot"></span>
+                                        <span>@Model.JoinPasswordStateLabel</span>
+                                    </span>
+                                    <span class="credential-state-text">@Model.JoinPasswordStateHint</span>
+                                    @if (Model.HasJoinPassword)
+                                    {
+                                        <div class="saved-secret">
+                                            <span class="saved-secret-label">Saved join password</span>
+                                            <code class="saved-secret-value"
+                                                  data-secret-text="join-saved"
+                                                  data-secret-masked="@Model.MaskedJoinPassword"
+                                                  data-secret-revealed="@Model.CurrentServerPassword">@Model.MaskedJoinPassword</code>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary saved-secret-toggle"
+                                                    data-secret-toggle="join-saved"
+                                                    aria-label="Show saved join password"
+                                                    title="Show saved join password">
+                                                <svg viewBox="0 0 24 24" class="password-toggle-icon" aria-hidden="true" focusable="false">
+                                                    <path d="M12 5C6.4 5 2.1 8.4 0 12c2.1 3.6 6.4 7 12 7s9.9-3.4 12-7c-2.1-3.6-6.4-7-12-7Zm0 11.2A4.2 4.2 0 1 1 12 7.8a4.2 4.2 0 0 1 0 8.4Zm0-1.9a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <label class="form-check credential-clear-toggle">
+                                            <input asp-for="Input.ClearServerPassword" class="form-check-input" />
+                                            <span class="form-check-label">Clear saved join password and open the lobby</span>
+                                        </label>
+                                    }
+                                </div>
+                                <span asp-validation-for="Input.ServerPassword" class="text-danger small"></span>
+                            </div>
+                            <div class="server-note">
+                                <strong>UX goal:</strong>
+                                <span>pick maps, tick checkboxes, hit start and play. No JSON or cfg digging for the player.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-card-header d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                    <div>
+                        <span class="section-kicker">Map rotation</span>
+                        <h2 class="panel-title">Choose maps for the pool</h2>
+                        <p class="panel-text mb-0">Every map is a checkbox. Start map is locked to the selected pool, so the server always boots into one of the chosen maps.</p>
+                    </div>
+                    <div class="small text-secondary">Last updated: @Model.UpdatedLabel by @Model.UpdatedByLabel</div>
+                </div>
+                <div class="panel-card-body">
+                    <div class="row g-3 align-items-end mb-4">
+                        <div class="col-12 col-lg-5">
+                            <label asp-for="Input.StartMap" class="form-label"></label>
+                            <select asp-for="Input.StartMap" class="form-select" data-start-map-select="true">
+                                @if (Model.StartMapOptions.Count == 0)
+                                {
+                                    <option value="">Select maps in the pool first</option>
+                                }
+                                else
+                                {
+                                    @foreach (var map in Model.StartMapOptions)
+                                    {
+                                        <option value="@map.Key">@map.Label</option>
+                                    }
+                                }
+                            </select>
+                            <div class="form-hint">Only selected pool maps appear here.</div>
+                            <span asp-validation-for="Input.StartMap" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        @foreach (var group in Model.MapGroups)
+                        {
+                            <div class="col-12 col-lg-6">
+                                <div class="map-group-card">
+                                    <div class="map-group-header">
+                                        <div>
+                                            <h3>@group.Label</h3>
+                                            <p>@group.Maps.Count map(s)</p>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-light" data-map-group-select="@group.Key">All</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-map-group-clear="@group.Key">Clear</button>
+                                        </div>
+                                    </div>
+                                    <div class="map-grid">
+                                        @foreach (var map in group.Maps)
+                                        {
+                                            <label class="map-check" for="map-@map.Key">
+                                                <input id="map-@map.Key"
+                                                        class="form-check-input"
+                                                        type="checkbox"
+                                                        name="Input.SelectedMaps"
+                                                        value="@map.Key"
+                                                        data-map-label="@map.Label"
+                                                        data-map-group="@group.Key"
+                                                        @(Model.IsMapSelected(map.Key) ? "checked" : null) />
+                                                <span>@map.Label</span>
+                                            </label>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <span asp-validation-for="Input.SelectedMaps" class="text-danger small d-block mt-3"></span>
+                </div>
+            </div>
+
+            <div class="panel-card sticky-actions">
+                <div class="panel-card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                    <div>
+                        <h3 class="mb-1">Ready to apply</h3>
+                        <p class="mb-0 text-secondary">Saving updates the Warsow configuration in SQLite. Saving and restarting also tells docker-agent to recycle the server.</p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" asp-page-handler="Save" class="btn btn-primary btn-lg">Save settings</button>
+                        <button type="submit" asp-page-handler="Apply" class="btn btn-outline-warning btn-lg" data-confirm-restart="true">Save and restart</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

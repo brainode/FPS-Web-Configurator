@@ -1,0 +1,147 @@
+services:
+
+  # ── Web control panel ──────────────────────────────────────────────────────
+  control-panel:
+    build:
+      context: .
+      dockerfile: services/control-panel/Dockerfile
+    image: control-panel:latest
+    ports:
+      - "${PANEL_PORT:-5099}:8080"
+    environment:
+      PanelAuth__SeedAdminUsername: "${PANEL_ADMIN_USERNAME:-admin}"
+      PanelAuth__SeedAdminPassword: "${PANEL_ADMIN_PASSWORD:-change-me}"
+      DockerAgent__BaseUrl: "http://docker-agent:8081"
+    volumes:
+      - control-panel-data:/var/lib/control-panel
+    networks:
+      - panel-net
+    restart: unless-stopped
+    depends_on:
+      - docker-agent
+
+  # ── Docker agent (manages game containers) ────────────────────────────────
+  docker-agent:
+    build:
+      context: .
+      dockerfile: services/docker-agent/Dockerfile
+    image: docker-agent:latest
+    environment:
+      DOCKER_AGENT_PORT: "8081"
+      WARSOW_IMAGE: "${WARSOW_IMAGE:-warsow-server:latest}"
+      WARSOW_SERVER_PORT: "${WARSOW_SERVER_PORT:-44400}"
+      WARSOW_HTTP_PORT: "${WARSOW_HTTP_PORT:-44444}"
+      WARSOW_DATA_VOLUME: "warsow-data"
+      WARFORK_IMAGE: "${WARFORK_IMAGE:-warfork-server:latest}"
+      WARFORK_SERVER_PORT: "${WARFORK_SERVER_PORT:-44500}"
+      WARFORK_HTTP_PORT: "${WARFORK_HTTP_PORT:-44544}"
+      WARFORK_DATA_VOLUME: "warfork-data"
+      QL_IMAGE: "${QL_IMAGE:-quake-live-server:latest}"
+      QL_SERVER_PORT: "${QL_SERVER_PORT:-27970}"
+      QL_RCON_PORT: "${QL_RCON_PORT:-28970}"
+      QL_DATA_VOLUME: "quake-live-standalone-data"
+      REFLEX_IMAGE: "${REFLEX_IMAGE:-reflex-arena-server:latest}"
+      REFLEX_SERVER_PORT: "${REFLEX_SERVER_PORT:-25787}"
+      REFLEX_DATA_VOLUME: "reflex-arena-data"
+      # Docker socket / endpoint. Options:
+      #   Unix socket (Linux, Docker Desktop WSL2 backend — default):
+      #     leave DOCKER_HOST unset and keep the volume mount below.
+      #   TCP (Docker Desktop on Windows — enable in Docker Desktop settings):
+      #     set DOCKER_HOST=tcp://host.docker.internal:2375 in .env
+      DOCKER_HOST: "${DOCKER_HOST:-}"
+    volumes:
+      # Unix socket mount — used when DOCKER_HOST is empty.
+      # On Windows with Docker Desktop you may need to enable
+      # "Allow the default Docker socket to be used" in Docker Desktop settings,
+      # OR set DOCKER_HOST=tcp://host.docker.internal:2375 in .env instead.
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - panel-net
+    restart: unless-stopped
+
+  # ── Quake Live server (image build target; started on demand via agent) ──
+  quake-live-server:
+    build:
+      context: .
+      dockerfile: services/quake-live-server/Dockerfile
+    image: quake-live-server:latest
+    profiles:
+      - game
+    ports:
+      - "${QL_SERVER_PORT:-27970}:27960/udp"
+      - "${QL_SERVER_PORT:-27970}:27960/tcp"
+      - "${QL_RCON_PORT:-28970}:28960/tcp"
+    volumes:
+      - quake-live-standalone-data:/var/lib/quake-live
+    cpus: 1.0
+    mem_limit: 512m
+    restart: "no"
+
+  # ── Warsow game server (image build target; started on demand via agent) ──
+  warsow-server:
+    build:
+      context: .
+      dockerfile: services/warsow-server/Dockerfile
+    image: warsow-server:latest
+    profiles:
+      - game
+    ports:
+      - "${WARSOW_SERVER_PORT:-44400}:44400/udp"
+      - "${WARSOW_HTTP_PORT:-44444}:44444/tcp"
+    volumes:
+      - warsow-data:/var/lib/warsow
+    cpus: 1.0
+    mem_limit: 512m
+    restart: "no"
+
+  # ── Warfork game server (image build target; started on demand via agent) ─
+  warfork-server:
+    build:
+      context: .
+      dockerfile: services/warfork-server/Dockerfile
+    image: warfork-server:latest
+    profiles:
+      - game
+    ports:
+      - "${WARFORK_SERVER_PORT:-44500}:44400/udp"
+      - "${WARFORK_HTTP_PORT:-44544}:44444/tcp"
+    volumes:
+      - warfork-data:/var/lib/warfork
+    cpus: 1.0
+    mem_limit: 512m
+    restart: "no"
+
+  # ── Reflex Arena server (image build target; started on demand via agent) ─
+  reflex-arena-server:
+    build:
+      context: .
+      dockerfile: services/reflex-arena-server/Dockerfile
+    image: reflex-arena-server:latest
+    profiles:
+      - game
+    ports:
+      - "${REFLEX_SERVER_PORT:-25787}:25787/udp"
+      - "${REFLEX_SERVER_PORT:-25787}:25787/tcp"
+    volumes:
+      - reflex-arena-data:/var/lib/reflex-arena
+    cpus: 1.0
+    mem_limit: 512m
+    restart: "no"
+
+# ── Persistent storage ────────────────────────────────────────────────────────
+volumes:
+  control-panel-data:
+    name: control-panel-data
+  warsow-data:
+    name: warsow-data
+  warfork-data:
+    name: warfork-data
+  quake-live-standalone-data:
+    name: quake-live-standalone-data
+  reflex-arena-data:
+    name: reflex-arena-data
+
+# ── Internal network (panel ↔ agent communication only) ──────────────────────
+networks:
+  panel-net:
+    driver: bridge

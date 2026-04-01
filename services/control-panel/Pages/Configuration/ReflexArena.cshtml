@@ -1,0 +1,280 @@
+@page
+@model control_panel.Pages.Configuration.ReflexArenaModel
+@{
+    ViewData["Title"] = "Reflex Arena";
+}
+
+<section class="page-shell py-4 py-lg-5">
+    <div class="container-xxl">
+        <div class="page-header d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+            <div>
+                <span class="section-kicker">Reflex Arena</span>
+                <h1 class="page-title mb-2">Server Parameters</h1>
+                <p class="page-subtitle mb-0">Configure startup mode, opening map and access controls from one clean administrative surface.</p>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <div class="status-chip @Model.StatusToneClass">
+                    <span class="status-dot"></span>
+                    <span>@Model.Status.StateLabel</span>
+                </div>
+                <a class="btn btn-outline-light" asp-page="/Index">Back to dashboard</a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+        {
+            <div class="alert alert-success border-0 panel-alert" role="alert">@Model.SuccessMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger border-0 panel-alert" role="alert">@Model.ErrorMessage</div>
+        }
+
+        <div class="panel-card mb-4">
+            <div class="panel-card-header">
+                <span class="section-kicker">Container</span>
+                <h2 class="panel-title">Server control</h2>
+            </div>
+            <div class="panel-card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    @if (Model.CanStart)
+                    {
+                        <form method="post" asp-page-handler="Start">
+                            <button type="submit" class="btn btn-primary btn-lg">Start server</button>
+                        </form>
+                    }
+
+                    @if (Model.CanRestart)
+                    {
+                        <form method="post" asp-page-handler="Restart">
+                            <button type="submit" class="btn btn-outline-warning" data-confirm-restart="true">Restart server</button>
+                        </form>
+                    }
+
+                    @if (Model.CanStop)
+                    {
+                        <form method="post" asp-page-handler="Stop">
+                            <button type="submit" class="btn btn-outline-light">Stop server</button>
+                        </form>
+                    }
+
+                    @if (Model.ShowUnavailableActions)
+                    {
+                        <button type="button" class="btn btn-outline-secondary" disabled>Server actions unavailable</button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="vstack gap-4">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 panel-alert validation-summary"></div>
+
+            <div class="row g-4">
+                <div class="col-12 col-xl-4">
+                    <div class="panel-card h-100">
+                        <div class="panel-card-header">
+                            <span class="section-kicker">Startup</span>
+                            <h2 class="panel-title">Mode &amp; opening map</h2>
+                            <p class="panel-text mb-0">The selected mode controls which stock maps remain enabled in the map picker below.</p>
+                        </div>
+                        <div class="panel-card-body vstack gap-3">
+                            <div>
+                                <label asp-for="Input.Mode" class="form-label"></label>
+                                <select asp-for="Input.Mode" class="form-select">
+                                    @foreach (var mode in Model.ModeOptions)
+                                    {
+                                        <option value="@mode.Key">@mode.Label</option>
+                                    }
+                                </select>
+                                <div class="form-hint">@(Model.ModeOptions.FirstOrDefault(mode => mode.Key == Model.Input.Mode)?.Description ?? string.Empty)</div>
+                                <span asp-validation-for="Input.Mode" class="text-danger small"></span>
+                            </div>
+                            <div>
+                                <label asp-for="Input.StartMap" class="form-label"></label>
+                                <select asp-for="Input.StartMap" class="form-select">
+                                    @foreach (var group in Model.MapGroups)
+                                    {
+                                        <optgroup label="@group.Label">
+                                            @foreach (var map in group.Maps)
+                                            {
+                                                <option value="@map.Key" disabled="@(!Model.IsMapSupportedForSelectedMode(map.Key))">@map.Label</option>
+                                            }
+                                        </optgroup>
+                                    }
+                                </select>
+                                <div class="form-hint">Only enabled maps support the selected mode according to the stock Linux dedicated server files.</div>
+                                <span asp-validation-for="Input.StartMap" class="text-danger small"></span>
+                            </div>
+                            <div>
+                                <label asp-for="Input.Hostname" class="form-label"></label>
+                                <input asp-for="Input.Hostname" class="form-control" />
+                                <span asp-validation-for="Input.Hostname" class="text-danger small"></span>
+                            </div>
+                            <div>
+                                <label asp-for="Input.MaxClients" class="form-label"></label>
+                                <input asp-for="Input.MaxClients" class="form-control" min="1" max="64" />
+                                <span asp-validation-for="Input.MaxClients" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <div class="panel-card h-100">
+                        <div class="panel-card-header">
+                            <span class="section-kicker">Rules</span>
+                            <h2 class="panel-title">Mutators &amp; matchmaking hints</h2>
+                            <p class="panel-text mb-0">Mutators come from the stock dedicated server feature set, not from ad-hoc cfg patches.</p>
+                        </div>
+                        <div class="panel-card-body vstack gap-3">
+                            <div class="rule-toggle-list">
+                                @foreach (var mutator in Model.MutatorOptions)
+                                {
+                                    <label class="rule-toggle">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               name="Input.SelectedMutators"
+                                               value="@mutator.Key"
+                                               @(Model.IsMutatorSelected(mutator.Key) ? "checked" : null) />
+                                        <span>
+                                            <strong>@mutator.Label</strong>
+                                            <small>@mutator.Description</small>
+                                        </span>
+                                    </label>
+                                }
+                            </div>
+                            <span asp-validation-for="Input.SelectedMutators" class="text-danger small"></span>
+                            <div>
+                                <label class="rule-toggle">
+                                    <input asp-for="Input.SteamEnabled" class="form-check-input" />
+                                    <span>
+                                        <strong>Publish to Steam browser</strong>
+                                        <small>Disable this for direct-connect only sessions.</small>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <label asp-for="Input.Country" class="form-label"></label>
+                                    <input asp-for="Input.Country" class="form-control" placeholder="RU" maxlength="3" />
+                                    <div class="form-hint">Optional 2-3 letter code shown by Reflex browser tools.</div>
+                                    <span asp-validation-for="Input.Country" class="text-danger small"></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label asp-for="Input.TimeLimitOverride" class="form-label"></label>
+                                    <input asp-for="Input.TimeLimitOverride" class="form-control" min="0" max="6000" />
+                                    <div class="form-hint">Set to <code>0</code> to keep the game's default match timer.</div>
+                                    <span asp-validation-for="Input.TimeLimitOverride" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <div class="panel-card h-100">
+                        <div class="panel-card-header">
+                            <span class="section-kicker">Access</span>
+                            <h2 class="panel-title">Passwords &amp; admin control</h2>
+                            <p class="panel-text mb-0">Join and referee passwords are stored in SQLite and reused on restart unless you replace or clear them.</p>
+                        </div>
+                        <div class="panel-card-body vstack gap-3">
+                            <div>
+                                <label asp-for="Input.ServerPassword" class="form-label"></label>
+                                <div class="input-group password-input-group">
+                                    <input id="join-password"
+                                           name="Input.ServerPassword"
+                                           type="password"
+                                           value="@Model.Input.ServerPassword"
+                                           class="form-control"
+                                           autocomplete="new-password"
+                                           placeholder="@(Model.HasJoinPassword ? "Leave empty to keep the join password" : "Optional join password")" />
+                                    <button type="button"
+                                            class="btn btn-outline-secondary password-toggle"
+                                            data-password-toggle="join-password"
+                                            aria-label="Show join password">
+                                        <svg viewBox="0 0 24 24" class="password-toggle-icon" aria-hidden="true" focusable="false">
+                                            <path d="M12 5C6.4 5 2.1 8.4 0 12c2.1 3.6 6.4 7 12 7s9.9-3.4 12-7c-2.1-3.6-6.4-7-12-7Zm0 11.2A4.2 4.2 0 1 1 12 7.8a4.2 4.2 0 0 1 0 8.4Zm0-1.9a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="credential-state mt-1">
+                                    <span class="status-chip @Model.JoinPasswordStateClass">
+                                        <span class="status-dot"></span>
+                                        <span>@Model.JoinPasswordStateLabel</span>
+                                    </span>
+                                    @if (Model.HasJoinPassword)
+                                    {
+                                        <label class="form-check credential-clear-toggle mt-2">
+                                            <input asp-for="Input.ClearServerPassword" class="form-check-input" />
+                                            <span class="form-check-label">Clear saved join password and open the lobby</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+
+                            <hr class="border-secondary my-1" />
+
+                            <div>
+                                <label asp-for="Input.RefPassword" class="form-label"></label>
+                                <div class="input-group password-input-group">
+                                    <input id="rcon-password"
+                                           name="Input.RefPassword"
+                                           type="password"
+                                           value="@Model.Input.RefPassword"
+                                           class="form-control"
+                                           autocomplete="new-password"
+                                           placeholder="@(Model.HasConfiguredRefPassword ? "Leave empty to keep the referee password" : "Optional referee password")" />
+                                    <button type="button"
+                                            class="btn btn-outline-secondary password-toggle"
+                                            data-password-toggle="rcon-password"
+                                            aria-label="Show referee password">
+                                        <svg viewBox="0 0 24 24" class="password-toggle-icon" aria-hidden="true" focusable="false">
+                                            <path d="M12 5C6.4 5 2.1 8.4 0 12c2.1 3.6 6.4 7 12 7s9.9-3.4 12-7c-2.1-3.6-6.4-7-12-7Zm0 11.2A4.2 4.2 0 1 1 12 7.8a4.2 4.2 0 0 1 0 8.4Zm0-1.9a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="credential-state mt-1">
+                                    <span class="status-chip @Model.RefPasswordStateClass">
+                                        <span class="status-dot"></span>
+                                        <span>@Model.RefPasswordStateLabel</span>
+                                    </span>
+                                    @if (Model.HasConfiguredRefPassword)
+                                    {
+                                        <label class="form-check credential-clear-toggle mt-2">
+                                            <input asp-for="Input.ClearRefPassword" class="form-check-input" />
+                                            <span class="form-check-label">Clear saved referee password</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="server-note">
+                                <strong>Current scope:</strong>
+                                <span>the module controls startup mode, opening map and stock mutators. Custom rotation files can be added later once we wire the Reflex rotation format end to end.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card sticky-actions">
+                <div class="panel-card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                    <div>
+                        <h3 class="mb-1">Ready to apply</h3>
+                        <p class="mb-0 text-secondary">Saving updates the Reflex Arena module config in SQLite. Save and restart also asks docker-agent to recreate the container with the new env vars.</p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" asp-page-handler="Save" class="btn btn-primary btn-lg">Save settings</button>
+                        <button type="submit" asp-page-handler="Apply" class="btn btn-outline-warning btn-lg" data-confirm-restart="true">Save and restart</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

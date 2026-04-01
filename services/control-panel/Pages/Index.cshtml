@@ -1,0 +1,160 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Control Panel";
+}
+
+<section class="page-shell py-4 py-lg-5">
+    <div class="container-xxl">
+        <div class="page-header d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-3 mb-4">
+            <div>
+                <span class="section-kicker">Quick Launch</span>
+                <h1 class="page-title mb-2">Launch your servers from one operational dashboard</h1>
+                <p class="page-subtitle mb-0">Each enabled module keeps its own status, saved profile and one-click actions here, so you can bring up the server you want from a single control surface.</p>
+            </div>
+            <div class="status-chip status-neutral">
+                <span class="status-dot"></span>
+                <span>@Model.HeaderStatusLabel</span>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+        {
+            <div class="alert alert-success border-0 panel-alert" role="alert">@Model.SuccessMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger border-0 panel-alert" role="alert">@Model.ErrorMessage</div>
+        }
+
+        @if (Model.Modules.Count == 0)
+        {
+            <div class="panel-card module-card mb-4">
+                <div class="panel-card-header d-flex flex-column flex-xl-row justify-content-between align-items-xl-start gap-3">
+                    <div>
+                        <span class="section-kicker">Overview</span>
+                        <h2 class="panel-title">No visible modules</h2>
+                        <p class="panel-text mb-0">All game modules are currently hidden from the dashboard. Re-enable the ones you need in panel settings.</p>
+                    </div>
+                    <a class="btn btn-outline-light" asp-page="/Settings">Open settings</a>
+                </div>
+            </div>
+        }
+
+        @foreach (var module in Model.Modules)
+        {
+            <div class="panel-card module-card mb-4">
+                <div class="panel-card-header d-flex flex-column flex-xl-row justify-content-between align-items-xl-start gap-3">
+                    <div>
+                        <span class="section-kicker">@module.DisplayName</span>
+                        <h2 class="panel-title">Current server profile</h2>
+                        <p class="panel-text mb-0">Status, saved profile and launch actions stay together so each game remains easy to control from the same home screen.</p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <div class="status-chip @module.StatusToneClass">
+                            <span class="status-dot"></span>
+                            <span>@module.Status.StateLabel</span>
+                        </div>
+                        <a class="btn btn-outline-light" href="@module.ConfigurationPagePath">&#9881; Settings</a>
+                    </div>
+                </div>
+                <div class="panel-card-body">
+                    <div class="row g-4">
+                        <div class="col-12 col-xl-4">
+                            <div class="module-section">
+                                <h3 class="module-section-title">Server state</h3>
+                                <p class="panel-text">@module.Status.Message</p>
+
+                                <dl class="metric-list mb-4">
+                                    <div>
+                                        <dt>Agent endpoint</dt>
+                                        <dd>@module.Status.SourceLabel</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Last check</dt>
+                                        <dd>@module.Status.CheckedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Saved by</dt>
+                                        <dd>@module.ConfigurationUpdatedByLabel</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Updated</dt>
+                                        <dd>@module.ConfigurationUpdatedLabel</dd>
+                                    </div>
+                                </dl>
+
+                                <div class="d-grid gap-2">
+                                    @if (module.CanStart)
+                                    {
+                                        <form method="post" asp-page-handler="Start">
+                                            <input type="hidden" name="gameKey" value="@module.GameKey" />
+                                            <button type="submit" class="btn btn-primary w-100 btn-lg">Start server</button>
+                                        </form>
+                                    }
+
+                                    @if (module.CanRestart)
+                                    {
+                                        <form method="post" asp-page-handler="Restart">
+                                            <input type="hidden" name="gameKey" value="@module.GameKey" />
+                                            <button type="submit" class="btn btn-outline-warning w-100" data-confirm-restart="true">Restart server</button>
+                                        </form>
+                                    }
+
+                                    @if (module.CanStop)
+                                    {
+                                        <form method="post" asp-page-handler="Stop">
+                                            <input type="hidden" name="gameKey" value="@module.GameKey" />
+                                            <button type="submit" class="btn btn-outline-light w-100">Stop server</button>
+                                        </form>
+                                    }
+
+                                    @if (module.ShowUnavailableActions)
+                                    {
+                                        <button type="button" class="btn btn-outline-secondary w-100" disabled>Server actions unavailable</button>
+                                    }
+                                </div>
+                                <div class="form-hint mt-3">@module.ActionHint</div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-xl-8">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <div class="summary-block h-100">
+                                        <div class="summary-label">Mode</div>
+                                        <div class="summary-value">@module.Summary.ModeName</div>
+                                        <div class="summary-meta">@module.Summary.ModeFlags</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="summary-block h-100">
+                                        <div class="summary-label">Maps</div>
+                                        <div class="summary-value">@module.Summary.StartMap</div>
+                                        <div class="summary-meta">@module.Summary.MapCountLabel</div>
+                                        <div class="summary-meta mt-2">@module.Summary.RotationPreview</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="summary-block h-100">
+                                        <div class="summary-label">Match limits</div>
+                                        <div class="summary-value">@module.Summary.LimitsSummary</div>
+                                        <div class="summary-meta">Players, timers, and other game-specific limits</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="summary-block h-100">
+                                        <div class="summary-label">Access</div>
+                                        <div class="summary-value">@module.Summary.AccessLabel</div>
+                                        <div class="summary-meta">Control: @module.Summary.RconLabel</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>

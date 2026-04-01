@@ -1,0 +1,124 @@
+{
+  "gametypes": [
+    {
+      "key": "ca",
+      "label": "Clan Arena",
+      "description": "Round-based arena duels with a compact pool.",
+      "recommendedMaps": ["wca1"],
+      "defaultScorelimit": 11,
+      "defaultTimelimit": 0
+    },
+    {
+      "key": "dm",
+      "label": "Deathmatch",
+      "description": "Classic frag race with free movement and insta variants.",
+      "recommendedMaps": ["wdm1", "wdm2", "wdm4", "wdm5", "wdm6", "wdm7", "wdm9", "wdm10", "wdm11", "wdm12", "wdm13", "wdm14", "wdm15", "wdm16", "wdm17", "wdm18", "wdm19"],
+      "defaultScorelimit": 0,
+      "defaultTimelimit": 15
+    },
+    {
+      "key": "duel",
+      "label": "Duel",
+      "description": "One-on-one competitive setup.",
+      "recommendedMaps": ["wca1", "wdm2", "wdm5"],
+      "defaultScorelimit": 0,
+      "defaultTimelimit": 10
+    },
+    {
+      "key": "ffa",
+      "label": "Free For All",
+      "description": "Open fragging with a larger deathmatch rotation.",
+      "recommendedMaps": ["wdm1", "wdm2", "wdm4", "wdm5", "wdm6", "wdm7", "wdm9", "wdm10", "wdm11", "wdm12", "wdm13", "wdm14", "wdm15", "wdm16", "wdm17", "wdm18", "wdm19"],
+      "defaultScorelimit": 0,
+      "defaultTimelimit": 15
+    },
+    {
+      "key": "tdm",
+      "label": "Team Deathmatch",
+      "description": "Team-based frag race.",
+      "recommendedMaps": ["wdm1", "wdm4", "wdm7", "wdm10", "wdm13", "wdm17"],
+      "defaultScorelimit": 0,
+      "defaultTimelimit": 20
+    },
+    {
+      "key": "ctf",
+      "label": "Capture the Flag",
+      "description": "Objective mode with traditional Warsow CTF maps.",
+      "recommendedMaps": ["wctf1", "wctf2", "wctf3", "wctf4", "wctf6"],
+      "defaultScorelimit": 0,
+      "defaultTimelimit": 20
+    },
+    {
+      "key": "ctftactics",
+      "label": "CTF Tactics",
+      "description": "Slower tactical variant of CTF.",
+      "recommendedMaps": ["wctf1", "wctf2", "wctf4", "wctf6"],
+      "defaultScorelimit": 0,
+      "defaultTimelimit": 20
+    },
+    {
+      "key": "bomb",
+      "label": "Bomb & Defuse",
+      "description": "Attack and defend bomb objective.",
+      "recommendedMaps": ["wbomb1", "wbomb2", "wbomb3", "wbomb4", "wbomb5", "wbomb6"],
+      "defaultScorelimit": 16,
+      "defaultTimelimit": 0
+    },
+    {
+      "key": "da",
+      "label": "Duel Arena",
+      "description": "Queue-based arena fights.",
+      "recommendedMaps": ["wda1", "wda2", "wda3", "wda4", "wda5"],
+      "defaultScorelimit": 11,
+      "defaultTimelimit": 0
+    },
+    {
+      "key": "headhunt",
+      "label": "Headhunt",
+      "description": "Score by chaining kills and surviving pressure.",
+      "recommendedMaps": ["wdm1", "wdm2", "wdm4", "wdm5", "wdm6", "wdm7", "wdm9", "wdm10", "wdm11", "wdm13", "wdm14", "wdm15", "wdm16", "wdm17", "wdm18", "wdm19"],
+      "defaultScorelimit": 0,
+      "defaultTimelimit": 15
+    },
+    {
+      "key": "race",
+      "label": "Race",
+      "description": "Movement-only time trial sessions.",
+      "recommendedMaps": ["wrace1"],
+      "defaultScorelimit": 0,
+      "defaultTimelimit": 0
+    }
+  ],
+  "mapGroups": [
+    {
+      "key": "arena",
+      "label": "Arena / Duel",
+      "maps": ["wca1", "wamphi1"]
+    },
+    {
+      "key": "deathmatch",
+      "label": "Deathmatch",
+      "maps": ["wdm1", "wdm2", "wdm4", "wdm5", "wdm6", "wdm7", "wdm9", "wdm10", "wdm11", "wdm12", "wdm13", "wdm14", "wdm15", "wdm16", "wdm17", "wdm18", "wdm19"]
+    },
+    {
+      "key": "ctf",
+      "label": "Capture The Flag",
+      "maps": ["wctf1", "wctf2", "wctf3", "wctf4", "wctf6"]
+    },
+    {
+      "key": "bomb",
+      "label": "Bomb",
+      "maps": ["wbomb1", "wbomb2", "wbomb3", "wbomb4", "wbomb5", "wbomb6"]
+    },
+    {
+      "key": "duel-arena",
+      "label": "Duel Arena",
+      "maps": ["wda1", "wda2", "wda3", "wda4", "wda5"]
+    },
+    {
+      "key": "special",
+      "label": "Race / Special",
+      "maps": ["wrace1", "wtutorial1"]
+    }
+  ]
+}

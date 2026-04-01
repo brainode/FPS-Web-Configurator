@@ -1,0 +1,47 @@
+@page
+@model control_panel.Pages.LoginModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<section class="login-shell">
+    <div class="container py-5">
+        <div class="row justify-content-center align-items-center min-vh-100 py-4">
+            <div class="col-12 col-md-8 col-lg-5">
+                <div class="panel-card login-panel">
+                    <div class="panel-card-header">
+                        <span class="section-kicker">Secure Access</span>
+                        <h1 class="page-title h2 mb-2">Server control without the hosting-panel mess</h1>
+                        <p class="panel-text mb-0">Sign in to manage game servers, control module visibility, and launch matches from one place.</p>
+                    </div>
+                    <div class="panel-card-body">
+                        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+                        {
+                            <div class="alert alert-danger border-0 panel-alert">@Model.ErrorMessage</div>
+                        }
+
+                        <form method="post" class="vstack gap-3">
+                            <div>
+                                <label asp-for="Input.Username" class="form-label"></label>
+                                <input asp-for="Input.Username" class="form-control form-control-lg" autocomplete="username" />
+                                <span asp-validation-for="Input.Username" class="text-danger small"></span>
+                            </div>
+
+                            <div>
+                                <label asp-for="Input.Password" class="form-label"></label>
+                                <input asp-for="Input.Password" class="form-control form-control-lg" autocomplete="current-password" />
+                                <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg w-100">Enter control panel</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

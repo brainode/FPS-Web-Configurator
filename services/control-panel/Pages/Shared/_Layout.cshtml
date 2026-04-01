@@ -1,0 +1,82 @@
+@inject control_panel.Services.IModuleVisibilityService ModuleVisibilityService
+@{
+    IReadOnlyList<control_panel.Services.GameModuleDescriptor> visibleModules = [];
+    if (User.Identity?.IsAuthenticated ?? false)
+    {
+        visibleModules = await ModuleVisibilityService.GetVisibleModulesAsync(Context.RequestAborted);
+    }
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PVP Control Panel</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="panel-app">
+    <div class="app-backdrop"></div>
+    <header class="topbar-shell">
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container-xxl">
+                <a class="navbar-brand brand-lockup" asp-page="/Index">
+                    <span class="brand-mark">P</span>
+                    <span>
+                        <strong>PVP Control Panel</strong>
+                        <small>Private match operations</small>
+                    </span>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topbarNav" aria-controls="topbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="topbarNav">
+                    @if (User.Identity?.IsAuthenticated ?? false)
+                    {
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Index">Overview</a>
+                            </li>
+                            @foreach (var module in visibleModules)
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" href="@module.ConfigurationPagePath">@module.DisplayName</a>
+                                </li>
+                            }
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Settings">Settings</a>
+                            </li>
+                        </ul>
+
+                        <div class="topbar-actions">
+                            <span class="operator-chip">Signed in as @User.Identity?.Name</span>
+                            <form method="post" asp-page="/Logout" class="m-0">
+                                <button type="submit" class="btn btn-outline-light">Logout</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main" class="main-content">
+        @RenderBody()
+    </main>
+
+    <footer class="app-footer">
+        <div class="container-xxl d-flex flex-column flex-lg-row justify-content-between gap-2">
+            <span>ASP.NET Core + Bootstrap + SQLite + docker-agent boundary</span>
+            <span>Focus: painless server setup for private sessions</span>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

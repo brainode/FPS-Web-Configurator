@@ -1,0 +1,338 @@
+@page
+@model control_panel.Pages.Configuration.QuakeLiveModel
+@{
+    ViewData["Title"] = "Quake Live";
+}
+
+<section class="page-shell py-4 py-lg-5">
+    <div class="container-xxl">
+        <div class="page-header d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+            <div>
+                <span class="section-kicker">Quake Live</span>
+                <h1 class="page-title mb-2">Server Parameters</h1>
+                <p class="page-subtitle mb-0">Configure factory, map rotation and access rules from one clean administrative surface.</p>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <div class="status-chip @Model.StatusToneClass">
+                    <span class="status-dot"></span>
+                    <span>@Model.Status.StateLabel</span>
+                </div>
+                <a class="btn btn-outline-light" asp-page="/Index">Back to dashboard</a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+        {
+            <div class="alert alert-success border-0 panel-alert" role="alert">@Model.SuccessMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger border-0 panel-alert" role="alert">@Model.ErrorMessage</div>
+        }
+
+        <div class="panel-card mb-4">
+            <div class="panel-card-header">
+                <span class="section-kicker">Container</span>
+                <h2 class="panel-title">Server control</h2>
+            </div>
+            <div class="panel-card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    @if (Model.CanStart)
+                    {
+                        <form method="post" asp-page-handler="Start">
+                            <button type="submit" class="btn btn-primary btn-lg">Start server</button>
+                        </form>
+                    }
+
+                    @if (Model.CanRestart)
+                    {
+                        <form method="post" asp-page-handler="Restart">
+                            <button type="submit" class="btn btn-outline-warning" data-confirm-restart="true">Restart server</button>
+                        </form>
+                    }
+
+                    @if (Model.CanStop)
+                    {
+                        <form method="post" asp-page-handler="Stop">
+                            <button type="submit" class="btn btn-outline-light">Stop server</button>
+                        </form>
+                    }
+
+                    @if (Model.ShowUnavailableActions)
+                    {
+                        <button type="button" class="btn btn-outline-secondary" disabled>Server actions unavailable</button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="vstack gap-4">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 panel-alert validation-summary"></div>
+
+            <div class="row g-4">
+                <div class="col-12 col-xl-4">
+                    <div class="panel-card h-100">
+                        <div class="panel-card-header">
+                            <span class="section-kicker">Mode</span>
+                            <h2 class="panel-title">Factory &amp; server profile</h2>
+                            <p class="panel-text mb-0">A factory defines the full ruleset. All maps in the rotation will use the selected factory.</p>
+                        </div>
+                        <div class="panel-card-body vstack gap-3">
+                            <div>
+                                <label asp-for="Input.Factory" class="form-label"></label>
+                                <select asp-for="Input.Factory" class="form-select">
+                                    @foreach (var factory in Model.FactoryOptions)
+                                    {
+                                        <option value="@factory.Key">@factory.Label</option>
+                                    }
+                                </select>
+                                <div class="form-hint">@(Model.FactoryOptions.FirstOrDefault(f => f.Key == Model.Input.Factory)?.Description ?? string.Empty)</div>
+                                <span asp-validation-for="Input.Factory" class="text-danger small"></span>
+                            </div>
+                            <div>
+                                <label asp-for="Input.Hostname" class="form-label"></label>
+                                <input asp-for="Input.Hostname" class="form-control" />
+                                <span asp-validation-for="Input.Hostname" class="text-danger small"></span>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <label asp-for="Input.MaxClients" class="form-label"></label>
+                                    <input asp-for="Input.MaxClients" class="form-control" min="1" max="64" />
+                                    <span asp-validation-for="Input.MaxClients" class="text-danger small"></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label asp-for="Input.ServerType" class="form-label"></label>
+                                    <select asp-for="Input.ServerType" class="form-select">
+                                        <option value="2">Internet (public)</option>
+                                        <option value="1">LAN</option>
+                                        <option value="0">Offline</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label asp-for="Input.Tags" class="form-label"></label>
+                                <input asp-for="Input.Tags" class="form-control" placeholder="e.g. ca,eu,private" />
+                                <div class="form-hint">Comma-separated tags shown in the server browser.</div>
+                                <span asp-validation-for="Input.Tags" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <div class="panel-card h-100">
+                        <div class="panel-card-header">
+                            <span class="section-kicker">Access</span>
+                            <h2 class="panel-title">RCON, stats &amp; privacy</h2>
+                            <p class="panel-text mb-0">Quake Live uses ZeroMQ for remote control. RCON port and stats port are separate TCP connections.</p>
+                        </div>
+                        <div class="panel-card-body vstack gap-3">
+                            <div>
+                                <label class="rule-toggle">
+                                    <input asp-for="Input.ZmqRconEnabled" class="form-check-input" />
+                                    <span>
+                                        <strong>Enable ZMQ RCON</strong>
+                                        <small>Required for external tools and minqlx.</small>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-sm-5">
+                                    <label asp-for="Input.ZmqRconPort" class="form-label"></label>
+                                    <input asp-for="Input.ZmqRconPort" class="form-control" min="1" max="65535" />
+                                    <span asp-validation-for="Input.ZmqRconPort" class="text-danger small"></span>
+                                </div>
+                                <div class="col-sm-7">
+                                    <label asp-for="Input.ZmqRconPassword" class="form-label"></label>
+                                    <div class="input-group password-input-group">
+                                        <input id="rcon-password"
+                                               name="Input.ZmqRconPassword"
+                                               type="password"
+                                               value="@Model.Input.ZmqRconPassword"
+                                               class="form-control"
+                                               autocomplete="new-password"
+                                               placeholder="Set the RCON password" />
+                                        <button type="button"
+                                                class="btn btn-outline-secondary password-toggle"
+                                                data-password-toggle="rcon-password"
+                                                aria-label="Show RCON password">
+                                            <svg viewBox="0 0 24 24" class="password-toggle-icon" aria-hidden="true" focusable="false">
+                                                <path d="M12 5C6.4 5 2.1 8.4 0 12c2.1 3.6 6.4 7 12 7s9.9-3.4 12-7c-2.1-3.6-6.4-7-12-7Zm0 11.2A4.2 4.2 0 1 1 12 7.8a4.2 4.2 0 0 1 0 8.4Zm0-1.9a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div class="credential-state mt-1">
+                                        <span class="status-chip @Model.RconPasswordStateClass">
+                                            <span class="status-dot"></span>
+                                            <span>@Model.RconPasswordStateLabel</span>
+                                        </span>
+                                    </div>
+                                    <span asp-validation-for="Input.ZmqRconPassword" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <hr class="border-secondary my-1" />
+
+                            <div>
+                                <label class="rule-toggle">
+                                    <input asp-for="Input.ZmqStatsEnabled" class="form-check-input" />
+                                    <span>
+                                        <strong>Enable ZMQ stats</strong>
+                                        <small>Publish match data over TCP for external tools.</small>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-sm-5">
+                                    <label asp-for="Input.ZmqStatsPort" class="form-label"></label>
+                                    <input asp-for="Input.ZmqStatsPort" class="form-control" min="1" max="65535" />
+                                    <span asp-validation-for="Input.ZmqStatsPort" class="text-danger small"></span>
+                                </div>
+                                <div class="col-sm-7">
+                                    <label asp-for="Input.ZmqStatsPassword" class="form-label"></label>
+                                    <div class="input-group password-input-group">
+                                        <input id="stats-password"
+                                               name="Input.ZmqStatsPassword"
+                                               type="password"
+                                               value="@Model.Input.ZmqStatsPassword"
+                                               class="form-control"
+                                               autocomplete="new-password"
+                                               placeholder="Optional stats password" />
+                                        <button type="button"
+                                                class="btn btn-outline-secondary password-toggle"
+                                                data-password-toggle="stats-password"
+                                                aria-label="Show stats password">
+                                            <svg viewBox="0 0 24 24" class="password-toggle-icon" aria-hidden="true" focusable="false">
+                                                <path d="M12 5C6.4 5 2.1 8.4 0 12c2.1 3.6 6.4 7 12 7s9.9-3.4 12-7c-2.1-3.6-6.4-7-12-7Zm0 11.2A4.2 4.2 0 1 1 12 7.8a4.2 4.2 0 0 1 0 8.4Zm0-1.9a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="border-secondary my-1" />
+
+                            <div>
+                                <label asp-for="Input.ServerPassword" class="form-label"></label>
+                                <div class="input-group password-input-group">
+                                    <input id="join-password"
+                                           name="Input.ServerPassword"
+                                           type="password"
+                                           value="@Model.Input.ServerPassword"
+                                           class="form-control"
+                                           autocomplete="new-password"
+                                           placeholder="@(Model.HasJoinPassword ? "Leave empty to keep the join password" : "Optional join password")" />
+                                    <button type="button"
+                                            class="btn btn-outline-secondary password-toggle"
+                                            data-password-toggle="join-password"
+                                            aria-label="Show join password">
+                                        <svg viewBox="0 0 24 24" class="password-toggle-icon" aria-hidden="true" focusable="false">
+                                            <path d="M12 5C6.4 5 2.1 8.4 0 12c2.1 3.6 6.4 7 12 7s9.9-3.4 12-7c-2.1-3.6-6.4-7-12-7Zm0 11.2A4.2 4.2 0 1 1 12 7.8a4.2 4.2 0 0 1 0 8.4Zm0-1.9a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="credential-state mt-1">
+                                    <span class="status-chip @Model.JoinPasswordStateClass">
+                                        <span class="status-dot"></span>
+                                        <span>@Model.JoinPasswordStateLabel</span>
+                                    </span>
+                                    @if (Model.HasJoinPassword)
+                                    {
+                                        <label class="form-check credential-clear-toggle mt-2">
+                                            <input asp-for="Input.ClearServerPassword" class="form-check-input" />
+                                            <span class="form-check-label">Clear saved join password and open the lobby</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <div class="panel-card h-100">
+                        <div class="panel-card-header">
+                            <span class="section-kicker">Info</span>
+                            <h2 class="panel-title">About the factory system</h2>
+                        </div>
+                        <div class="panel-card-body">
+                            <p class="panel-text">A <strong>factory</strong> defines the full game ruleset — weapon respawn, scoring, round logic. All maps in the pool use the same factory.</p>
+                            <p class="panel-text">The panel writes <code>mappool.txt</code> at restart:
+                                each line is <code>mapname factory</code>. You can add Workshop maps
+                                by editing the raw JSON later.</p>
+                            <p class="panel-text mb-0"><strong>InstaGib FFA</strong> (<code>iffa</code>) is the
+                                built-in one-shot railgun factory — no need for a custom cfg.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-card-header d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                    <div>
+                        <span class="section-kicker">Map rotation</span>
+                        <h2 class="panel-title">Choose maps for the pool</h2>
+                        <p class="panel-text mb-0">These are the vanilla Quake Live maps. Workshop maps can be added via the raw JSON. Each selected map will use the factory chosen above.</p>
+                    </div>
+                    <div class="small text-secondary">Last updated: @Model.UpdatedLabel by @Model.UpdatedByLabel</div>
+                </div>
+                <div class="panel-card-body">
+                    <div class="row g-3">
+                        @foreach (var group in Model.MapGroups)
+                        {
+                            <div class="col-12 col-lg-6 col-xl-4">
+                                <div class="map-group-card">
+                                    <div class="map-group-header">
+                                        <div>
+                                            <h3>@group.Label</h3>
+                                            <p>@group.Maps.Count map(s)</p>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-light" data-map-group-select="@group.Key">All</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-map-group-clear="@group.Key">Clear</button>
+                                        </div>
+                                    </div>
+                                    <div class="map-grid">
+                                        @foreach (var map in group.Maps)
+                                        {
+                                            <label class="map-check" for="map-@map.Key">
+                                                <input id="map-@map.Key"
+                                                       class="form-check-input"
+                                                       type="checkbox"
+                                                       name="Input.SelectedMaps"
+                                                       value="@map.Key"
+                                                       data-map-label="@map.Label"
+                                                       data-map-group="@group.Key"
+                                                       @(Model.IsMapSelected(map.Key) ? "checked" : null) />
+                                                <span>@map.Label</span>
+                                            </label>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <span asp-validation-for="Input.SelectedMaps" class="text-danger small d-block mt-3"></span>
+                </div>
+            </div>
+
+            <div class="panel-card sticky-actions">
+                <div class="panel-card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                    <div>
+                        <h3 class="mb-1">Ready to apply</h3>
+                        <p class="mb-0 text-secondary">Saving updates the Quake Live module config in SQLite. Save and restart tells docker-agent to recycle the container with the new env vars.</p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" asp-page-handler="Save" class="btn btn-primary btn-lg">Save settings</button>
+                        <button type="submit" asp-page-handler="Apply" class="btn btn-outline-warning btn-lg" data-confirm-restart="true">Save and restart</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

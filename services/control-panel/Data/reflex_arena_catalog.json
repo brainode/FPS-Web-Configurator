@@ -1,0 +1,137 @@
+{
+  "modes": [
+    {
+      "key": "1v1",
+      "label": "1v1 Duel",
+      "description": "Classic head-to-head Reflex duel on the stock 1v1 pool.",
+      "supportedMapGroups": ["1v1"],
+      "recommendedMap": "Fusion"
+    },
+    {
+      "key": "2v2",
+      "label": "2v2 Arena",
+      "description": "Small-team arena on maps that ship with dedicated 2v2 support.",
+      "supportedMapGroups": ["2v2"],
+      "recommendedMap": "Fusion"
+    },
+    {
+      "key": "ffa",
+      "label": "Free For All",
+      "description": "Stock free-for-all mode using the maps marked for FFA in the Linux dedicated server.",
+      "supportedMapGroups": ["ffa", "training"],
+      "recommendedMap": "Phobos"
+    },
+    {
+      "key": "tdm",
+      "label": "Team Deathmatch",
+      "description": "Team deathmatch on the stock TDM-compatible map pool.",
+      "supportedMapGroups": ["tdm"],
+      "recommendedMap": "Fusion"
+    },
+    {
+      "key": "ctf",
+      "label": "Capture the Flag",
+      "description": "Stock CTF support from the Linux dedicated server package.",
+      "supportedMapGroups": ["ctf"],
+      "recommendedMap": "SkyTemples"
+    },
+    {
+      "key": "race",
+      "label": "Race",
+      "description": "Movement race mode on the dedicated server's race-enabled pool.",
+      "supportedMapGroups": ["race"],
+      "recommendedMap": "SkyTemples"
+    },
+    {
+      "key": "training",
+      "label": "Training",
+      "description": "Tutorial and practice maps shipped with the dedicated server.",
+      "supportedMapGroups": ["training"],
+      "recommendedMap": "training_combat_stage_1"
+    }
+  ],
+  "mutators": [
+    {
+      "key": "instagib",
+      "label": "Instagib",
+      "description": "Spawn into one-shot arena rules without needing a custom cfg."
+    }
+  ],
+  "mapGroups": [
+    {
+      "key": "1v1",
+      "label": "1v1 Maps",
+      "maps": [
+        "AbandonedShelter",
+        "Aerowalk",
+        "Ashur",
+        "Fusion",
+        "Ruin",
+        "SkyTemples",
+        "TheCatalyst",
+        "furnace"
+      ]
+    },
+    {
+      "key": "2v2",
+      "label": "2v2 Maps",
+      "maps": [
+        "Aerowalk",
+        "Ashur",
+        "Fusion",
+        "Phobos",
+        "Ruin",
+        "SkyTemples",
+        "TheCatalyst",
+        "ironguard"
+      ]
+    },
+    {
+      "key": "ffa",
+      "label": "FFA Maps",
+      "maps": [
+        "Phobos",
+        "SkyTemples"
+      ]
+    },
+    {
+      "key": "tdm",
+      "label": "TDM Maps",
+      "maps": [
+        "Aerowalk",
+        "Ashur",
+        "Fusion",
+        "Hieratic",
+        "Phobos",
+        "Ruin",
+        "SkyTemples",
+        "ironguard"
+      ]
+    },
+    {
+      "key": "ctf",
+      "label": "CTF Maps",
+      "maps": [
+        "SkyTemples"
+      ]
+    },
+    {
+      "key": "race",
+      "label": "Race Maps",
+      "maps": [
+        "SkyTemples"
+      ]
+    },
+    {
+      "key": "training",
+      "label": "Training Maps",
+      "maps": [
+        "training_combat_stage_1",
+        "training_combat_stage_2",
+        "training_items_stage_1",
+        "training_move_stage_1",
+        "training_move_stage_2"
+      ]
+    }
+  ]
+}

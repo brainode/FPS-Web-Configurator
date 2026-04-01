@@ -1,0 +1,12 @@
+.docker-tmp/
+.dotnet-cli/
+games/warsow/distribution
+**/bin/
+**/obj/
+data/control-panel/
+tmp-control-panel.*.log
+.artifacts/
+.tmp/
+tmp/
+.env
+.claude/
