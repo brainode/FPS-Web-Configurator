@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2025 Zeus <admin@brainode.com>
+
 # One-command project startup.
 # Builds all images (including warsow-server) and starts panel services.
 set -eu

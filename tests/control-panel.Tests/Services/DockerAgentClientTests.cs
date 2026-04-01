@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2025 Zeus <admin@brainode.com>
+
 using System.Net;
 using control_panel.Options;
 using control_panel.Services;

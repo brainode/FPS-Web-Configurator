@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2025 Zeus <admin@brainode.com>
+
 set -eu
 
 read_cfg_value() {
