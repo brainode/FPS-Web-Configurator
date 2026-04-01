@@ -107,6 +107,24 @@ public sealed class WarforkConfigurationSerializerTests
     }
 
     [Fact]
+    public void Serialize_PreservesMixedMapPools_ForNonRestrictedGametype()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ffa",
+            StartMap = "wfda1",
+            MapList = ["wfda1", "wfdm1", "wfctf3"]
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+
+        Assert.Equal("wfda1", root.GetProperty("sv_defaultmap").GetString());
+        Assert.Equal("wfda1 wfdm1 wfctf3", root.GetProperty("g_maplist").GetString());
+    }
+
+    [Fact]
     public void Serialize_AndDeserialize_RoundTripsPasswords()
     {
         var settings = new WarforkServerSettings

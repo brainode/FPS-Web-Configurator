@@ -76,7 +76,7 @@
                         <div class="panel-card-header">
                             <span class="section-kicker">Mode</span>
                             <h2 class="panel-title">Gameplay template</h2>
-                            <p class="panel-text mb-0">The map picker stays grounded in the stock Linux dedicated server files, so unsupported mode and map combinations can be caught before launch.</p>
+                            <p class="panel-text mb-0">Choose the ruleset first, then shape the server around it with your own map rotation and access profile.</p>
                         </div>
                         <div class="panel-card-body vstack gap-3">
                             <div>
@@ -247,7 +247,7 @@
                     <div>
                         <span class="section-kicker">Map rotation</span>
                         <h2 class="panel-title">Choose maps for the pool</h2>
-                        <p class="panel-text mb-0">Start map is locked to the selected pool, and unsupported stock combinations stay disabled for the selected ruleset.</p>
+                        <p class="panel-text mb-0">Start map stays locked to the selected pool, but you can mix any stock Warfork maps into the rotation you want to run.</p>
                     </div>
                     <div class="small text-secondary">Last updated: @Model.UpdatedLabel by @Model.UpdatedByLabel</div>
                 </div>
@@ -299,7 +299,6 @@
                                                        value="@map.Key"
                                                        data-map-label="@map.Label"
                                                        data-map-group="@group.Key"
-                                                       disabled="@(!Model.IsMapSupportedForSelectedGametype(map.Key))"
                                                        @(Model.IsMapSelected(map.Key) ? "checked" : null) />
                                                 <span>@map.Label</span>
                                             </label>

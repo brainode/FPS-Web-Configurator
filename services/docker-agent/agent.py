@@ -111,6 +111,8 @@ GAME_CONFIGS = {
             "WARFORK_INSTAGIB": "0",
             "WARFORK_INSTAJUMP": "0",
             "WARFORK_INSTASHIELD": "0",
+            "WARFORK_SV_FPS": "120",
+            "WARFORK_SV_PPS": "80",
             "WARFORK_SERVER_PORT": "44400",
             "WARFORK_HTTP_PORT": "44444",
             "WARFORK_PUBLIC": "1",
