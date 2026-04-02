@@ -48,9 +48,23 @@ public sealed class ReflexArenaModuleCatalogTests
     [Fact]
     public void NormalizeMutatorSelection_FiltersInvalidEntries()
     {
-        var normalized = ReflexArenaModuleCatalog.NormalizeMutatorSelection(["instagib", "unknown", "instagib"]);
+        var normalized = ReflexArenaModuleCatalog.NormalizeMutatorSelection(
+            ["instagib", "lowgravity", "unknown", "instagib", "arena"]);
 
-        Assert.Equal(["instagib"], normalized);
+        Assert.Equal(["instagib", "lowgravity", "arena"], normalized);
+    }
+
+    [Fact]
+    public void Catalog_ExposesExpandedStockMutators()
+    {
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("arena"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("bighead"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("handicap"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("instagib"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("lowgravity"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("meleeonly"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("vampire"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("warmup"));
     }
 
     [Fact]

@@ -37,7 +37,7 @@ public sealed class ReflexArenaConfigurationSerializerTests
             Hostname = "Reflex Test Server",
             Mode = "tdm",
             StartMap = "SkyTemples",
-            Mutators = ["instagib"],
+            Mutators = ["instagib", "lowgravity", "arena"],
             MaxClients = 10,
             SteamEnabled = false,
             Country = "ru",

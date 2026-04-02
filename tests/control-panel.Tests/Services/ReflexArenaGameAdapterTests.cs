@@ -39,12 +39,13 @@ public sealed class ReflexArenaGameAdapterTests
         {
             Mode = "ffa",
             StartMap = "Phobos",
-            Mutators = ["instagib"],
+            Mutators = ["instagib", "lowgravity"],
         });
 
         var summary = _adapter.GetSummary(json);
 
         Assert.Contains("Instagib", summary.ModeFlags);
+        Assert.Contains("Low Gravity", summary.ModeFlags);
     }
 
     [Fact]

@@ -134,9 +134,44 @@
   ],
   "mutators": [
     {
+      "key": "arena",
+      "label": "Arena",
+      "description": "Respawn players into the arena-style ruleset for short elimination rounds."
+    },
+    {
+      "key": "bighead",
+      "label": "Big Head",
+      "description": "Enlarge player heads and gibs for a more chaotic, high-visibility match."
+    },
+    {
+      "key": "handicap",
+      "label": "Handicap",
+      "description": "Give trailing players extra health and armor to keep the scoreline closer."
+    },
+    {
       "key": "instagib",
       "label": "Instagib",
       "description": "Spawn into one-shot arena rules without needing a custom cfg."
+    },
+    {
+      "key": "lowgravity",
+      "label": "Low Gravity",
+      "description": "Reduce world gravity for floatier movement, jumps and projectile arcs."
+    },
+    {
+      "key": "meleeonly",
+      "label": "Melee Only",
+      "description": "Strip the match down to melee combat without weapon and ammo pickups."
+    },
+    {
+      "key": "vampire",
+      "label": "Vampire",
+      "description": "Convert dealt damage into health gain and remove health pickups from the map."
+    },
+    {
+      "key": "warmup",
+      "label": "Warmup",
+      "description": "Spawn players with warmup-style stacks and the full weapon set."
     }
   ],
   "mapGroups": [
