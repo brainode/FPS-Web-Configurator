@@ -179,7 +179,7 @@
                         <div class="panel-card-header">
                             <span class="section-kicker">Access</span>
                             <h2 class="panel-title">Passwords &amp; admin control</h2>
-                            <p class="panel-text mb-0">Join and referee passwords are stored in SQLite and reused on restart unless you replace or clear them.</p>
+                            <p class="panel-text mb-0">Join password is optional. Referee password is required — it doubles as the rcon password used by the entrypoint to load custom maps after startup.</p>
                         </div>
                         <div class="panel-card-body vstack gap-3">
                             <div>
@@ -227,7 +227,7 @@
                                            value="@Model.Input.RefPassword"
                                            class="form-control"
                                            autocomplete="new-password"
-                                           placeholder="@(Model.HasConfiguredRefPassword ? "Leave empty to keep the referee password" : "Optional referee password")" />
+                                           placeholder="@(Model.HasConfiguredRefPassword ? "Leave empty to keep the current password" : "Set referee / rcon password")" />
                                     <button type="button"
                                             class="btn btn-outline-secondary password-toggle"
                                             data-password-toggle="rcon-password"
@@ -242,13 +242,6 @@
                                         <span class="status-dot"></span>
                                         <span>@Model.RefPasswordStateLabel</span>
                                     </span>
-                                    @if (Model.HasConfiguredRefPassword)
-                                    {
-                                        <label class="form-check credential-clear-toggle mt-2">
-                                            <input asp-for="Input.ClearRefPassword" class="form-check-input" />
-                                            <span class="form-check-label">Clear saved referee password</span>
-                                        </label>
-                                    }
                                 </div>
                             </div>
 

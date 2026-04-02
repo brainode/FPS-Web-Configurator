@@ -38,8 +38,8 @@ public sealed class ReflexArenaModel(
     public string CurrentRefPassword { get; private set; } = string.Empty;
     public string CurrentServerPassword { get; private set; } = string.Empty;
     public bool HasConfiguredRefPassword => !string.IsNullOrWhiteSpace(CurrentRefPassword);
-    public string RefPasswordStateLabel => HasConfiguredRefPassword ? "Configured" : "Optional";
-    public string RefPasswordStateClass => HasConfiguredRefPassword ? "status-running" : "status-neutral";
+    public string RefPasswordStateLabel => HasConfiguredRefPassword ? "Configured" : "Not set — required";
+    public string RefPasswordStateClass => HasConfiguredRefPassword ? "status-running" : "status-stopped";
     public bool HasJoinPassword => !string.IsNullOrWhiteSpace(CurrentServerPassword);
     public string JoinPasswordStateLabel => HasJoinPassword ? "Protected lobby" : "Open lobby";
     public string JoinPasswordStateClass => HasJoinPassword ? "status-running" : "status-neutral";
@@ -109,6 +109,11 @@ public sealed class ReflexArenaModel(
         ModelState.ClearValidationState(nameof(Input));
         TryValidateModel(Input, nameof(Input));
         ValidateInput();
+
+        if (string.IsNullOrWhiteSpace(effectiveSettings.RefPassword))
+        {
+            ModelState.AddModelError("Input.RefPassword", "Referee / rcon password is required.");
+        }
 
         if (!ModelState.IsValid)
         {
@@ -253,11 +258,8 @@ public sealed class ReflexArenaModel(
         public bool ClearServerPassword { get; set; }
 
         [DataType(DataType.Password)]
-        [Display(Name = "Referee password")]
+        [Display(Name = "Referee / rcon password")]
         public string? RefPassword { get; set; }
-
-        [Display(Name = "Clear saved referee password")]
-        public bool ClearRefPassword { get; set; }
 
         public ReflexArenaServerSettings ToSettings(ReflexArenaServerSettings? existingSettings = null)
         {
@@ -276,11 +278,9 @@ public sealed class ReflexArenaModel(
                     : string.IsNullOrWhiteSpace(ServerPassword)
                         ? existingSettings?.ServerPassword ?? string.Empty
                         : ServerPassword,
-                RefPassword = ClearRefPassword
-                    ? string.Empty
-                    : string.IsNullOrWhiteSpace(RefPassword)
-                        ? existingSettings?.RefPassword ?? string.Empty
-                        : RefPassword,
+                RefPassword = string.IsNullOrWhiteSpace(RefPassword)
+                    ? existingSettings?.RefPassword ?? string.Empty
+                    : RefPassword,
             };
         }
 
@@ -299,7 +299,6 @@ public sealed class ReflexArenaModel(
                 ServerPassword = string.Empty,
                 ClearServerPassword = false,
                 RefPassword = string.Empty,
-                ClearRefPassword = false,
             };
         }
     }

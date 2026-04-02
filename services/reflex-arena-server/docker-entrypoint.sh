@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2025 Zeus <admin@brainode.com>
 
@@ -100,6 +100,10 @@ REFLEX_COUNTRY="${REFLEX_COUNTRY:-}"
 REFLEX_TIMELIMIT_OVERRIDE="${REFLEX_TIMELIMIT_OVERRIDE:-0}"
 REFLEX_PASSWORD="${REFLEX_PASSWORD:-}"
 REFLEX_REF_PASSWORD="${REFLEX_REF_PASSWORD:-}"
+REFLEX_RCON_PASSWORD="${REFLEX_RCON_PASSWORD:-docker-rcon-secret}"
+# Map to load first (must exist in base game). rcon switches to REFLEX_START_MAP after boot.
+REFLEX_SAFE_MAP="${REFLEX_SAFE_MAP:-Fusion}"
+REFLEX_MAP_CHANGE_WAIT="${REFLEX_MAP_CHANGE_WAIT:-12}"
 
 mkdir -p "${REFLEX_DATA_DIR}/logs"
 ln -snf "$REFLEX_DATA_DIR" "${REFLEX_INSTALL_DIR}/docker-data"
@@ -111,7 +115,6 @@ CFG
 write_line sv_hostname "$REFLEX_HOSTNAME" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_startmode "$REFLEX_MODE" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_startmap "$REFLEX_START_MAP" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
-printf 'sv_startwmap ""\n' >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_startrotation "" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_maxclients "$REFLEX_MAXCLIENTS" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_steam "$REFLEX_STEAM" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
@@ -127,6 +130,7 @@ fi
 write_optional_line sv_startmutators "$REFLEX_START_MUTATORS" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_optional_line sv_password "$REFLEX_PASSWORD" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_optional_line sv_refpassword "$REFLEX_REF_PASSWORD" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
+write_line sv_rconpassword "$REFLEX_RCON_PASSWORD" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 
 # Reflex ships a stock dedicatedserver_default.cfg with sv_startrotation default
 # and a workshop map configured. Comment those out in-place so the dedicated
@@ -149,13 +153,13 @@ export USER="$REFLEX_RUN_USER"
 export LOGNAME="$REFLEX_RUN_USER"
 export LD_LIBRARY_PATH="${REFLEX_INSTALL_DIR}:${REFLEX_INSTALL_DIR}/linux64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 
-# Reflex processes command-line cvars after dedicatedserver.cfg. Repeat the
-# startup pair here so the selected mode/map wins over any stock defaults.
+# Start on REFLEX_SAFE_MAP first; after the server is up we rcon-switch to
+# REFLEX_START_MAP. This avoids startup failures when the configured map is a
+# custom/community map that the engine cannot resolve before full init.
 set -- \
-    +sv_startwmap "" \
     +sv_startrotation "" \
     +sv_startmode "$REFLEX_MODE" \
-    +sv_startmap "$REFLEX_START_MAP" \
+    +sv_startmap "$REFLEX_SAFE_MAP" \
     "$@"
 
 if [ -n "$REFLEX_START_MUTATORS" ]; then
@@ -163,12 +167,33 @@ if [ -n "$REFLEX_START_MUTATORS" ]; then
 fi
 
 if [ "$(id -u)" = "0" ]; then
-    exec gosu "$REFLEX_RUN_USER" env \
+    gosu "$REFLEX_RUN_USER" env \
         HOME="$REFLEX_DATA_DIR" \
         USER="$REFLEX_RUN_USER" \
         LOGNAME="$REFLEX_RUN_USER" \
         LD_LIBRARY_PATH="$LD_LIBRARY_PATH" \
-        "${REFLEX_INSTALL_DIR}/reflexded" "$@"
+        "${REFLEX_INSTALL_DIR}/reflexded" "$@" &
+else
+    "${REFLEX_INSTALL_DIR}/reflexded" "$@" &
+fi
+SERVER_PID=$!
+trap 'kill -TERM "$SERVER_PID" 2>/dev/null; wait "$SERVER_PID"' TERM INT
+
+# If the configured map differs from the safe boot map, wait for the server to
+# finish loading then send a Quake-style rcon packet to switch maps.
+if [ "$REFLEX_START_MAP" != "$REFLEX_SAFE_MAP" ]; then
+    printf '[reflex-arena] Boot map: %s — switching to "%s" in %s s via rcon\n' \
+        "$REFLEX_SAFE_MAP" "$REFLEX_START_MAP" "$REFLEX_MAP_CHANGE_WAIT"
+    sleep "$REFLEX_MAP_CHANGE_WAIT"
+    if kill -0 "$SERVER_PID" 2>/dev/null; then
+        printf '\xff\xff\xff\xffrcon %s map %s\n' \
+            "$REFLEX_RCON_PASSWORD" "$REFLEX_START_MAP" \
+            > /dev/udp/127.0.0.1/"$REFLEX_GAME_PORT" 2>/dev/null \
+        && printf '[reflex-arena] rcon sent: map %s\n' "$REFLEX_START_MAP" \
+        || printf '[reflex-arena] Warning: rcon send failed\n'
+    else
+        printf '[reflex-arena] Warning: server exited before rcon map change\n'
+    fi
 fi
 
-exec "${REFLEX_INSTALL_DIR}/reflexded" "$@"
+wait "$SERVER_PID"
