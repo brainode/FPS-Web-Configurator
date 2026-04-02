@@ -41,12 +41,12 @@ rewrite_default_cfg() {
             next
         }
         /^sv_startwmap[[:space:]]+/ {
-            print "// sv_startwmap 0"
+            print "sv_startwmap 0"
             sawWorkshopMap = 1
             next
         }
         /^sv_startrotation[[:space:]]+/ {
-            print "// sv_startrotation default"
+            print "sv_startrotation \"\""
             sawRotation = 1
             next
         }
@@ -70,10 +70,10 @@ rewrite_default_cfg() {
                 print "sv_startmap " map
             }
             if (!sawWorkshopMap) {
-                print "// sv_startwmap 0"
+                print "sv_startwmap 0"
             }
             if (!sawRotation) {
-                print "// sv_startrotation default"
+                print "sv_startrotation \"\""
             }
             if (length(mutators) > 0 && !sawMutators) {
                 print "sv_startmutators " mutators
@@ -150,6 +150,7 @@ export LD_LIBRARY_PATH="${REFLEX_INSTALL_DIR}:${REFLEX_INSTALL_DIR}/linux64${LD_
 # Reflex processes command-line cvars after dedicatedserver.cfg. Repeat the
 # startup pair here so the selected mode/map wins over any stock defaults.
 set -- \
+    +sv_startrotation "" \
     +sv_startmode "$REFLEX_MODE" \
     +sv_startmap "$REFLEX_START_MAP" \
     "$@"
