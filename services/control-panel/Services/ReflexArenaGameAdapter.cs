@@ -56,7 +56,6 @@ public sealed class ReflexArenaGameAdapter : IGameAdapter
             ["REFLEX_TIMELIMIT_OVERRIDE"] = settings.TimeLimitOverride.ToString(),
             ["REFLEX_PASSWORD"] = settings.ServerPassword,
             ["REFLEX_REF_PASSWORD"] = settings.RefPassword,
-            ["REFLEX_RCON_PASSWORD"] = settings.RefPassword,
         };
     }
 
