@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2025 Zeus <admin@brainode.com>
 
@@ -27,7 +27,6 @@ rewrite_default_cfg() {
             sawMode = 0
             sawMap = 0
             sawWorkshopMap = 0
-            sawRotation = 0
             sawMutators = 0
         }
         /^sv_startmode[[:space:]]+/ {
@@ -46,8 +45,6 @@ rewrite_default_cfg() {
             next
         }
         /^sv_startrotation[[:space:]]+/ {
-            print "sv_startrotation \"\""
-            sawRotation = 1
             next
         }
         /^sv_startmutators[[:space:]]+/ || /^\/\/ sv_startmutators[[:space:]]+/ {
@@ -71,9 +68,6 @@ rewrite_default_cfg() {
             }
             if (!sawWorkshopMap) {
                 print "sv_startwmap \"\""
-            }
-            if (!sawRotation) {
-                print "sv_startrotation \"\""
             }
             if (length(mutators) > 0 && !sawMutators) {
                 print "sv_startmutators " mutators
@@ -111,7 +105,6 @@ CFG
 write_line sv_hostname "$REFLEX_HOSTNAME" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_startmode "$REFLEX_MODE" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_startmap "$REFLEX_START_MAP" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
-write_line sv_startrotation "" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_maxclients "$REFLEX_MAXCLIENTS" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_steam "$REFLEX_STEAM" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_allowedit "$REFLEX_ALLOW_EDIT" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
@@ -127,9 +120,8 @@ write_optional_line sv_startmutators "$REFLEX_START_MUTATORS" >> "${REFLEX_INSTA
 write_optional_line sv_password "$REFLEX_PASSWORD" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_optional_line sv_refpassword "$REFLEX_REF_PASSWORD" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 
-# Reflex ships a stock dedicatedserver_default.cfg with sv_startrotation default
-# and a workshop map configured. Comment those out in-place so the dedicated
-# server falls back to the selected local start map instead of empty/default.
+# Reflex ships stock startup workshop/rotation defaults in dedicatedserver_default.cfg.
+# Strip them so we can isolate startup behavior to the selected mode/map pair.
 rewrite_default_cfg "${REFLEX_INSTALL_DIR}/dedicatedserver_default.cfg"
 
 printf '[reflex-arena] Mode: %s\n' "$REFLEX_MODE"
@@ -148,10 +140,7 @@ export USER="$REFLEX_RUN_USER"
 export LOGNAME="$REFLEX_RUN_USER"
 export LD_LIBRARY_PATH="${REFLEX_INSTALL_DIR}:${REFLEX_INSTALL_DIR}/linux64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 
-# Reflex processes command-line cvars after dedicatedserver.cfg. Repeat the
-# startup pair here so the selected mode/map wins over any stock defaults.
 set -- \
-    +sv_startrotation "" \
     +sv_startmode "$REFLEX_MODE" \
     +sv_startmap "$REFLEX_START_MAP" \
     "$@"
