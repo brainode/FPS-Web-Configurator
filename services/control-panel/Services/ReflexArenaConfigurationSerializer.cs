@@ -2,6 +2,7 @@
 // Copyright (C) 2025 Zeus <admin@brainode.com>
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using control_panel.Models;
 
 namespace control_panel.Services;
@@ -43,6 +44,9 @@ public static class ReflexArenaConfigurationSerializer
             settings.TimeLimitOverride = GameConfigJsonReader.ReadInt(root, "sv_timelimit_override", settings.TimeLimitOverride);
             settings.ServerPassword = GameConfigJsonReader.ReadString(root, "sv_password", string.Empty);
             settings.RefPassword = GameConfigJsonReader.ReadString(root, "sv_refpassword", string.Empty);
+
+            if (root.TryGetProperty("custom_rules", out var rulesEl))
+                settings.CustomRules = DeserializeCustomRules(rulesEl);
         }
         catch (JsonException)
         {
@@ -60,7 +64,8 @@ public static class ReflexArenaConfigurationSerializer
         var normalizedMutators = ReflexArenaModuleCatalog.NormalizeMutatorSelection(settings.Mutators);
         var resolvedStartMap = ReflexArenaModuleCatalog.ResolveStartMap(settings.StartMap, settings.Mode);
         var workshopStartMapId = ReflexArenaModuleCatalog.GetWorkshopMapId(resolvedStartMap);
-        var payload = new Dictionary<string, string>
+
+        var obj = new JsonObject
         {
             ["sv_hostname"] = settings.Hostname,
             ["sv_startmode"] = settings.Mode,
@@ -75,6 +80,103 @@ public static class ReflexArenaConfigurationSerializer
             ["sv_refpassword"] = settings.RefPassword ?? string.Empty,
         };
 
-        return JsonSerializer.Serialize(payload, SerializerOptions);
+        if (settings.CustomRules is { } rules)
+            obj["custom_rules"] = SerializeCustomRules(rules);
+
+        return obj.ToJsonString(SerializerOptions);
+    }
+
+    private static JsonObject SerializeCustomRules(ReflexArenaCustomRules rules)
+    {
+        var weaponsArray = new JsonArray();
+        foreach (var w in rules.Weapons)
+        {
+            var wNode = new JsonObject
+            {
+                ["key"] = w.Key,
+                ["weapon_enabled"] = w.WeaponEnabled,
+                ["infinite_ammo"] = w.InfiniteAmmo,
+            };
+            if (w.DirectDamage.HasValue) wNode["direct_damage"] = w.DirectDamage.Value;
+            if (w.SplashDamage.HasValue) wNode["splash_damage"] = w.SplashDamage.Value;
+            if (w.MaxAmmo.HasValue) wNode["max_ammo"] = w.MaxAmmo.Value;
+            weaponsArray.Add(wNode);
+        }
+
+        var pickupsArray = new JsonArray();
+        foreach (var p in rules.Pickups)
+        {
+            pickupsArray.Add(new JsonObject
+            {
+                ["key"] = p.Key,
+                ["enabled"] = p.Enabled,
+            });
+        }
+
+        var node = new JsonObject
+        {
+            ["enabled"] = rules.Enabled,
+            ["ruleset_name"] = rules.RulesetName,
+            ["weapons"] = weaponsArray,
+            ["pickups"] = pickupsArray,
+        };
+        if (rules.Gravity.HasValue) node["gravity"] = rules.Gravity.Value;
+        return node;
+    }
+
+    private static ReflexArenaCustomRules DeserializeCustomRules(JsonElement el)
+    {
+        var rules = new ReflexArenaCustomRules
+        {
+            Enabled = el.TryGetProperty("enabled", out var en) && en.GetBoolean(),
+            RulesetName = el.TryGetProperty("ruleset_name", out var rn)
+                ? rn.GetString() ?? "custom" : "custom",
+        };
+
+        if (el.TryGetProperty("gravity", out var grav) && grav.TryGetInt32(out var gravVal))
+            rules.Gravity = gravVal;
+
+        if (el.TryGetProperty("weapons", out var weapons) &&
+            weapons.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var w in weapons.EnumerateArray())
+            {
+                var key = w.TryGetProperty("key", out var k) ? k.GetString() ?? string.Empty : string.Empty;
+                if (string.IsNullOrWhiteSpace(key)) continue;
+
+                var wo = new ReflexArenaWeaponOverride
+                {
+                    Key = key,
+                    WeaponEnabled = !w.TryGetProperty("weapon_enabled", out var we) || we.GetBoolean(),
+                    InfiniteAmmo = w.TryGetProperty("infinite_ammo", out var ia) && ia.GetBoolean(),
+                };
+                if (w.TryGetProperty("direct_damage", out var dd) && dd.TryGetInt32(out var ddVal))
+                    wo.DirectDamage = ddVal;
+                if (w.TryGetProperty("splash_damage", out var sd) && sd.TryGetInt32(out var sdVal))
+                    wo.SplashDamage = sdVal;
+                if (w.TryGetProperty("max_ammo", out var ma) && ma.TryGetInt32(out var maVal))
+                    wo.MaxAmmo = maVal;
+
+                rules.Weapons.Add(wo);
+            }
+        }
+
+        if (el.TryGetProperty("pickups", out var pickups) &&
+            pickups.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var p in pickups.EnumerateArray())
+            {
+                var key = p.TryGetProperty("key", out var k) ? k.GetString() ?? string.Empty : string.Empty;
+                if (string.IsNullOrWhiteSpace(key)) continue;
+
+                rules.Pickups.Add(new ReflexArenaPickupOverride
+                {
+                    Key = key,
+                    Enabled = !p.TryGetProperty("enabled", out var en2) || en2.GetBoolean(),
+                });
+            }
+        }
+
+        return rules;
     }
 }

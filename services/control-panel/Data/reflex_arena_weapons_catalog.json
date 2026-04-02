@@ -1,0 +1,127 @@
+{
+  "weapons": [
+    {
+      "key": "boltrifle",
+      "label": "Bolt Rifle",
+      "description": "Hitscan railgun. One-shot potential at high damage.",
+      "gconstPrefix": "boltrifle",
+      "hasSplashDamage": false,
+      "hasAmmo": true,
+      "defaultDirectDamage": 80,
+      "defaultAmmo": 10,
+      "damageMin": -999,
+      "damageMax": 999
+    },
+    {
+      "key": "rocketlauncher",
+      "label": "Rocket Launcher",
+      "description": "Projectile weapon with direct hit and area splash.",
+      "gconstPrefix": "rocketlauncher",
+      "hasSplashDamage": true,
+      "hasAmmo": true,
+      "defaultDirectDamage": 80,
+      "defaultSplashDamage": 65,
+      "defaultAmmo": 10,
+      "damageMin": -999,
+      "damageMax": 999
+    },
+    {
+      "key": "shaft",
+      "label": "Shaft",
+      "description": "Continuous beam (lightning gun). Damage is per tick.",
+      "gconstPrefix": "shaft",
+      "hasSplashDamage": false,
+      "hasAmmo": true,
+      "defaultDirectDamage": 7,
+      "defaultAmmo": 100,
+      "damageMin": -999,
+      "damageMax": 999
+    },
+    {
+      "key": "grenadelauncher",
+      "label": "Grenade Launcher",
+      "description": "Bouncing projectile with timed explosion.",
+      "gconstPrefix": "grenadelauncher",
+      "hasSplashDamage": true,
+      "hasAmmo": true,
+      "defaultDirectDamage": 80,
+      "defaultSplashDamage": 65,
+      "defaultAmmo": 10,
+      "damageMin": -999,
+      "damageMax": 999
+    },
+    {
+      "key": "plasmagun",
+      "label": "Plasma Gun",
+      "description": "Rapid-fire plasma projectiles.",
+      "gconstPrefix": "plasmagun",
+      "hasSplashDamage": false,
+      "hasAmmo": true,
+      "defaultDirectDamage": 15,
+      "defaultAmmo": 50,
+      "damageMin": -999,
+      "damageMax": 999
+    },
+    {
+      "key": "shotgun",
+      "label": "Shotgun",
+      "description": "Short-range spread weapon.",
+      "gconstPrefix": "shotgun",
+      "hasSplashDamage": false,
+      "hasAmmo": true,
+      "defaultDirectDamage": 100,
+      "defaultAmmo": 10,
+      "damageMin": -999,
+      "damageMax": 999
+    },
+    {
+      "key": "stakelauncher",
+      "label": "Stake Launcher",
+      "description": "Nail/stake projectile weapon.",
+      "gconstPrefix": "stakelauncher",
+      "hasSplashDamage": false,
+      "hasAmmo": true,
+      "defaultDirectDamage": 60,
+      "defaultAmmo": 10,
+      "damageMin": -999,
+      "damageMax": 999
+    }
+  ],
+  "pickups": [
+    {
+      "key": "armor",
+      "label": "Armor",
+      "description": "Armor shards and full armor packs.",
+      "gconst": "gconst_armor_enabled"
+    },
+    {
+      "key": "health",
+      "label": "Health",
+      "description": "Health packs and mega-health.",
+      "gconst": "gconst_health_enabled"
+    },
+    {
+      "key": "powerups",
+      "label": "Powerups",
+      "description": "Quad Damage, Haste and similar powerup items.",
+      "gconst": "gconst_powerups_enabled"
+    },
+    {
+      "key": "ammopickups",
+      "label": "Ammo pickups",
+      "description": "Weapon ammo boxes spawning on the map.",
+      "gconst": "gconst_ammopickups_enabled"
+    }
+  ],
+  "globalConstants": [
+    {
+      "key": "gravity",
+      "gconst": "gconst_gravity",
+      "label": "Gravity",
+      "hint": "Default 800. Lower = floatier movement and bigger jumps.",
+      "defaultValue": 800,
+      "min": 50,
+      "max": 3000
+    }
+  ]
+}

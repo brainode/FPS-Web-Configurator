@@ -15,4 +15,5 @@ public sealed class ReflexArenaServerSettings
     public int TimeLimitOverride { get; set; }
     public string ServerPassword { get; set; } = string.Empty;
     public string RefPassword { get; set; } = string.Empty;
+    public ReflexArenaCustomRules? CustomRules { get; set; }
 }

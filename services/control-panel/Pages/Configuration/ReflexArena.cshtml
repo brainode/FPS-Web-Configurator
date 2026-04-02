@@ -254,6 +254,176 @@
                 </div>
             </div>
 
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="panel-card">
+                        <div class="panel-card-header">
+                            <span class="section-kicker">Advanced</span>
+                            <h2 class="panel-title">Custom ruleset</h2>
+                            <p class="panel-text mb-0">Override weapon damage, ammo, pickups and gravity without touching any config files. The panel generates <code>game/ruleset_&lt;name&gt;.cfg</code> automatically on each container start.</p>
+                        </div>
+                        <div class="panel-card-body vstack gap-4">
+                            <div>
+                                <label class="rule-toggle">
+                                    <input asp-for="Input.CustomRulesEnabled"
+                                           class="form-check-input"
+                                           id="customRulesMaster" />
+                                    <span>
+                                        <strong>Enable custom ruleset</strong>
+                                        <small>When disabled the server uses its default game constants.</small>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div id="customRulesBody" @(Model.Input.CustomRulesEnabled ? "" : "hidden")>
+                                <div class="mb-4">
+                                    <label asp-for="Input.CustomRulesetName" class="form-label"></label>
+                                    <input asp-for="Input.CustomRulesetName"
+                                           class="form-control"
+                                           style="max-width:280px"
+                                           placeholder="custom"
+                                           maxlength="64" />
+                                    <div class="form-hint">Lowercase letters, digits, underscores. Becomes <code>ruleset_&lt;name&gt;.cfg</code>.</div>
+                                    <span asp-validation-for="Input.CustomRulesetName" class="text-danger small"></span>
+                                </div>
+
+                                <h3 class="mb-3" style="font-size:.9rem;text-transform:uppercase;letter-spacing:.05em;color:var(--bs-secondary-color,#6c757d)">Weapons</h3>
+                                <div class="table-responsive mb-4">
+                                    <table class="table table-sm align-middle mb-0" style="--bs-table-bg:transparent">
+                                        <thead>
+                                            <tr>
+                                                <th style="width:220px">Weapon</th>
+                                                <th style="width:120px">Direct DMG</th>
+                                                <th style="width:120px">Splash DMG</th>
+                                                <th style="width:60px" class="text-center">∞ Ammo</th>
+                                                <th style="width:100px">Max ammo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var weapon in Model.WeaponEntries)
+                                            {
+                                                var enabledKey = $"Input.WeaponEnabled[{weapon.Key}]";
+                                                var isEnabled = Model.Input.WeaponEnabled.GetValueOrDefault(weapon.Key, true);
+                                                var isInfinite = Model.Input.WeaponInfiniteAmmo.GetValueOrDefault(weapon.Key, false);
+                                                <tr data-weapon-row="@weapon.Key" class="@(isEnabled ? "" : "opacity-50")">
+                                                    <td>
+                                                        <label class="d-flex align-items-center gap-2 mb-0 fw-semibold">
+                                                            <input type="checkbox"
+                                                                   name="Input.WeaponEnabled[@weapon.Key]"
+                                                                   value="true"
+                                                                   class="form-check-input weapon-toggle"
+                                                                   data-weapon="@weapon.Key"
+                                                                   @(isEnabled ? "checked" : null) />
+                                                            @weapon.Label
+                                                        </label>
+                                                        <div class="form-hint mb-0">@weapon.Description</div>
+                                                    </td>
+                                                    <td>
+                                                        <input type="number"
+                                                               name="Input.WeaponDirectDamage[@weapon.Key]"
+                                                               value="@(Model.Input.WeaponDirectDamage.TryGetValue(weapon.Key, out var dd) ? dd?.ToString() : null)"
+                                                               class="form-control form-control-sm weapon-input"
+                                                               data-weapon="@weapon.Key"
+                                                               placeholder="@weapon.DefaultDirectDamage"
+                                                               min="@weapon.DamageMin"
+                                                               max="@weapon.DamageMax"
+                                                               @(isEnabled ? null : "disabled") />
+                                                    </td>
+                                                    <td>
+                                                        @if (weapon.HasSplashDamage)
+                                                        {
+                                                            <input type="number"
+                                                                   name="Input.WeaponSplashDamage[@weapon.Key]"
+                                                                   value="@(Model.Input.WeaponSplashDamage.TryGetValue(weapon.Key, out var sd) ? sd?.ToString() : null)"
+                                                                   class="form-control form-control-sm weapon-input"
+                                                                   data-weapon="@weapon.Key"
+                                                                   placeholder="@weapon.DefaultSplashDamage"
+                                                                   min="@weapon.DamageMin"
+                                                                   max="@weapon.DamageMax"
+                                                                   @(isEnabled ? null : "disabled") />
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-secondary">—</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if (weapon.HasAmmo)
+                                                        {
+                                                            <input type="checkbox"
+                                                                   name="Input.WeaponInfiniteAmmo[@weapon.Key]"
+                                                                   value="true"
+                                                                   class="form-check-input infinite-ammo-toggle"
+                                                                   data-weapon="@weapon.Key"
+                                                                   @(isInfinite ? "checked" : null)
+                                                                   @(isEnabled ? null : "disabled") />
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-secondary">—</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @if (weapon.HasAmmo)
+                                                        {
+                                                            <input type="number"
+                                                                   name="Input.WeaponMaxAmmo[@weapon.Key]"
+                                                                   value="@(Model.Input.WeaponMaxAmmo.TryGetValue(weapon.Key, out var ma) ? ma?.ToString() : null)"
+                                                                   class="form-control form-control-sm weapon-input ammo-input"
+                                                                   data-weapon="@weapon.Key"
+                                                                   placeholder="@weapon.DefaultAmmo"
+                                                                   min="1"
+                                                                   max="9999"
+                                                                   @(isEnabled && !isInfinite ? null : "disabled") />
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-secondary">—</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <h3 class="mb-3" style="font-size:.9rem;text-transform:uppercase;letter-spacing:.05em;color:var(--bs-secondary-color,#6c757d)">Pickups &amp; items</h3>
+                                <div class="rule-toggle-list mb-4">
+                                    @foreach (var pickup in Model.PickupEntries)
+                                    {
+                                        var isPickupEnabled = Model.Input.PickupEnabled.GetValueOrDefault(pickup.Key, true);
+                                        <label class="rule-toggle">
+                                            <input type="checkbox"
+                                                   name="Input.PickupEnabled[@pickup.Key]"
+                                                   value="true"
+                                                   class="form-check-input"
+                                                   @(isPickupEnabled ? "checked" : null) />
+                                            <span>
+                                                <strong>@pickup.Label</strong>
+                                                <small>@pickup.Description</small>
+                                            </span>
+                                        </label>
+                                    }
+                                </div>
+
+                                <h3 class="mb-3" style="font-size:.9rem;text-transform:uppercase;letter-spacing:.05em;color:var(--bs-secondary-color,#6c757d)">Global</h3>
+                                <div style="max-width:280px">
+                                    <label asp-for="Input.GravityOverride" class="form-label"></label>
+                                    <input asp-for="Input.GravityOverride"
+                                           class="form-control"
+                                           type="number"
+                                           min="50"
+                                           max="3000"
+                                           placeholder="800 (default)" />
+                                    <div class="form-hint">Default is 800. Lower = floatier movement and bigger jumps.</div>
+                                    <span asp-validation-for="Input.GravityOverride" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="panel-card sticky-actions">
                 <div class="panel-card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                     <div>
@@ -272,4 +442,43 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            // Master toggle: show/hide the whole ruleset body
+            var master = document.getElementById('customRulesMaster');
+            var body   = document.getElementById('customRulesBody');
+            if (master && body) {
+                master.addEventListener('change', function () {
+                    body.hidden = !master.checked;
+                });
+            }
+
+            // Weapon row: disable all inputs in the row when weapon is unchecked
+            document.querySelectorAll('.weapon-toggle').forEach(function (cb) {
+                cb.addEventListener('change', function () {
+                    var key = cb.dataset.weapon;
+                    var row = document.querySelector('[data-weapon-row="' + key + '"]');
+                    if (!row) return;
+                    var enabled = cb.checked;
+                    row.classList.toggle('opacity-50', !enabled);
+                    row.querySelectorAll('.weapon-input, .infinite-ammo-toggle').forEach(function (el) {
+                        el.disabled = !enabled;
+                    });
+                    // Keep ammo input state in sync with infinite toggle
+                    if (enabled) syncInfiniteAmmo(key);
+                });
+            });
+
+            // Infinite ammo toggle: disable the max-ammo number input
+            function syncInfiniteAmmo(key) {
+                var inf     = document.querySelector('.infinite-ammo-toggle[data-weapon="' + key + '"]');
+                var ammoIn  = document.querySelector('.ammo-input[data-weapon="' + key + '"]');
+                if (inf && ammoIn) ammoIn.disabled = inf.checked;
+            }
+
+            document.querySelectorAll('.infinite-ammo-toggle').forEach(function (cb) {
+                cb.addEventListener('change', function () { syncInfiniteAmmo(cb.dataset.weapon); });
+            });
+        })();
+    </script>
 }

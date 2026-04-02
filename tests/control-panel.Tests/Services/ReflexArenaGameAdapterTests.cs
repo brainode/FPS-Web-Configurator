@@ -85,4 +85,94 @@ public sealed class ReflexArenaGameAdapterTests
         Assert.NotNull(settings);
         Assert.Equal("1v1", settings.Mode);
     }
+
+    [Fact]
+    public void GetContainerEnv_CustomRulesEnabled_AddsRulesetEnvVars()
+    {
+        var json = ReflexArenaConfigurationSerializer.Serialize(new ReflexArenaServerSettings
+        {
+            Mode = "1v1",
+            StartMap = "Fusion",
+            CustomRules = new control_panel.Models.ReflexArenaCustomRules
+            {
+                Enabled = true,
+                RulesetName = "rocketrail",
+                Weapons = [new() { Key = "boltrifle", WeaponEnabled = true, DirectDamage = 99 }],
+            },
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.True(env.ContainsKey("REFLEX_RULESET_NAME"));
+        Assert.Equal("rocketrail", env["REFLEX_RULESET_NAME"]);
+        Assert.True(env.ContainsKey("REFLEX_RULESET_CONFIG"));
+        Assert.Contains("gconst_boltrifle_damage 99", env["REFLEX_RULESET_CONFIG"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_CustomRulesDisabled_OmitsRulesetEnvVars()
+    {
+        var json = ReflexArenaConfigurationSerializer.Serialize(new ReflexArenaServerSettings
+        {
+            CustomRules = new control_panel.Models.ReflexArenaCustomRules { Enabled = false },
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.False(env.ContainsKey("REFLEX_RULESET_NAME"));
+        Assert.False(env.ContainsKey("REFLEX_RULESET_CONFIG"));
+    }
+
+    [Fact]
+    public void GetContainerEnv_InfiniteAmmo_GeneratesMaxAmmoZero()
+    {
+        var json = ReflexArenaConfigurationSerializer.Serialize(new ReflexArenaServerSettings
+        {
+            CustomRules = new control_panel.Models.ReflexArenaCustomRules
+            {
+                Enabled = true,
+                Weapons = [new() { Key = "boltrifle", WeaponEnabled = true, InfiniteAmmo = true }],
+            },
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Contains("gconst_boltrifle_maxammo 0", env["REFLEX_RULESET_CONFIG"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_PickupDisabled_GeneratesEnabledZero()
+    {
+        var json = ReflexArenaConfigurationSerializer.Serialize(new ReflexArenaServerSettings
+        {
+            CustomRules = new control_panel.Models.ReflexArenaCustomRules
+            {
+                Enabled = true,
+                Pickups = [new() { Key = "armor", Enabled = false }],
+            },
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Contains("gconst_armor_enabled 0", env["REFLEX_RULESET_CONFIG"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_WeaponDisabled_SkipsDamageLines()
+    {
+        var json = ReflexArenaConfigurationSerializer.Serialize(new ReflexArenaServerSettings
+        {
+            CustomRules = new control_panel.Models.ReflexArenaCustomRules
+            {
+                Enabled = true,
+                Weapons = [new() { Key = "shaft", WeaponEnabled = false, DirectDamage = 99 }],
+            },
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+        var config = env["REFLEX_RULESET_CONFIG"];
+
+        Assert.Contains("gconst_shaft_enabled 0", config);
+        Assert.DoesNotContain("gconst_shaft_damage", config);
+    }
 }

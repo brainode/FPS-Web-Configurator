@@ -16,6 +16,7 @@
     <EmbeddedResource Include="Data\warfork_catalog.json" />
     <EmbeddedResource Include="Data\quake_live_catalog.json" />
     <EmbeddedResource Include="Data\reflex_arena_catalog.json" />
+    <EmbeddedResource Include="Data\reflex_arena_weapons_catalog.json" />
   </ItemGroup>
 
 </Project>

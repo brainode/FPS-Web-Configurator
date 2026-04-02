@@ -107,4 +107,82 @@ public sealed class ReflexArenaConfigurationSerializerTests
         Assert.Contains("sv_startmutators", json);
         Assert.Contains("sv_refpassword", json);
     }
+
+    [Fact]
+    public void Serialize_WithCustomRules_ProducesCustomRulesKey()
+    {
+        var settings = new ReflexArenaServerSettings
+        {
+            CustomRules = new control_panel.Models.ReflexArenaCustomRules
+            {
+                Enabled = true,
+                RulesetName = "rocketrail",
+            },
+        };
+
+        var json = ReflexArenaConfigurationSerializer.Serialize(settings);
+
+        Assert.Contains("custom_rules", json);
+        Assert.Contains("rocketrail", json);
+    }
+
+    [Fact]
+    public void Serialize_Deserialize_CustomRulesRoundtrip()
+    {
+        var original = new ReflexArenaServerSettings
+        {
+            Mode = "tdm",
+            StartMap = "Fusion",
+            CustomRules = new control_panel.Models.ReflexArenaCustomRules
+            {
+                Enabled = true,
+                RulesetName = "custom",
+                Gravity = 400,
+                Weapons =
+                [
+                    new() { Key = "boltrifle", WeaponEnabled = true, DirectDamage = 99, InfiniteAmmo = true },
+                    new() { Key = "rocketlauncher", WeaponEnabled = true, SplashDamage = 1, MaxAmmo = 5 },
+                    new() { Key = "shaft", WeaponEnabled = false },
+                ],
+                Pickups =
+                [
+                    new() { Key = "armor", Enabled = false },
+                    new() { Key = "health", Enabled = true },
+                ],
+            },
+        };
+
+        var json = ReflexArenaConfigurationSerializer.Serialize(original);
+        var restored = ReflexArenaConfigurationSerializer.Deserialize(json);
+
+        Assert.NotNull(restored.CustomRules);
+        Assert.True(restored.CustomRules.Enabled);
+        Assert.Equal("custom", restored.CustomRules.RulesetName);
+        Assert.Equal(400, restored.CustomRules.Gravity);
+
+        var bolt = restored.CustomRules.Weapons.First(w => w.Key == "boltrifle");
+        Assert.True(bolt.WeaponEnabled);
+        Assert.Equal(99, bolt.DirectDamage);
+        Assert.True(bolt.InfiniteAmmo);
+
+        var rocket = restored.CustomRules.Weapons.First(w => w.Key == "rocketlauncher");
+        Assert.Equal(1, rocket.SplashDamage);
+        Assert.Equal(5, rocket.MaxAmmo);
+
+        var shaft = restored.CustomRules.Weapons.First(w => w.Key == "shaft");
+        Assert.False(shaft.WeaponEnabled);
+
+        var armor = restored.CustomRules.Pickups.First(p => p.Key == "armor");
+        Assert.False(armor.Enabled);
+    }
+
+    [Fact]
+    public void Deserialize_WithoutCustomRules_ReturnsNullCustomRules()
+    {
+        var json = """{"sv_startmode":"1v1","sv_startmap":"Fusion","sv_startwmap":""}""";
+
+        var settings = ReflexArenaConfigurationSerializer.Deserialize(json);
+
+        Assert.Null(settings.CustomRules);
+    }
 }

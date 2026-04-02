@@ -116,6 +116,8 @@ REFLEX_COUNTRY="${REFLEX_COUNTRY:-}"
 REFLEX_TIMELIMIT_OVERRIDE="${REFLEX_TIMELIMIT_OVERRIDE:-0}"
 REFLEX_PASSWORD="${REFLEX_PASSWORD:-}"
 REFLEX_REF_PASSWORD="${REFLEX_REF_PASSWORD:-}"
+REFLEX_RULESET_NAME="${REFLEX_RULESET_NAME:-}"
+REFLEX_RULESET_CONFIG="${REFLEX_RULESET_CONFIG:-}"
 
 mkdir -p "${REFLEX_DATA_DIR}/logs"
 ln -snf "$REFLEX_DATA_DIR" "${REFLEX_INSTALL_DIR}/docker-data"
@@ -148,6 +150,13 @@ write_optional_line sv_startmutators "$REFLEX_START_MUTATORS" >> "${REFLEX_INSTA
 write_optional_line sv_password "$REFLEX_PASSWORD" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_optional_line sv_refpassword "$REFLEX_REF_PASSWORD" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 
+if [ -n "$REFLEX_RULESET_NAME" ] && [ -n "$REFLEX_RULESET_CONFIG" ]; then
+    mkdir -p "${REFLEX_INSTALL_DIR}/game"
+    printf '%s\n' "$REFLEX_RULESET_CONFIG" \
+        > "${REFLEX_INSTALL_DIR}/game/ruleset_${REFLEX_RULESET_NAME}.cfg"
+    write_line sv_ruleset "$REFLEX_RULESET_NAME" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
+fi
+
 # Reflex ships stock startup workshop/rotation defaults in dedicatedserver_default.cfg.
 # Strip them so we can isolate startup behavior to the selected mode/map pair.
 rewrite_default_cfg "${REFLEX_INSTALL_DIR}/dedicatedserver_default.cfg"
@@ -159,6 +168,9 @@ if [ -n "$REFLEX_START_WORKSHOP_MAP" ]; then
 fi
 printf '[reflex-arena] Game port: %s\n' "$REFLEX_GAME_PORT"
 printf '[reflex-arena] Mutators: %s\n' "${REFLEX_START_MUTATORS:-none}"
+if [ -n "$REFLEX_RULESET_NAME" ]; then
+    printf '[reflex-arena] Ruleset: %s\n' "$REFLEX_RULESET_NAME"
+fi
 
 if [ "$(id -u)" = "0" ]; then
     chown -R "${REFLEX_RUN_USER}:${REFLEX_RUN_USER}" "$REFLEX_DATA_DIR" "$REFLEX_INSTALL_DIR"
