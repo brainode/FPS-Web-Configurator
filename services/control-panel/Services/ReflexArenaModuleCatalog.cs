@@ -10,6 +10,7 @@ namespace control_panel.Services;
 public static class ReflexArenaModuleCatalog
 {
     private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> SupportedMapsByMode;
+    private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> SupportedModesByMap;
     private static readonly IReadOnlyDictionary<string, ReflexArenaMapOption> MapsByKey;
     private static readonly IReadOnlyDictionary<string, ReflexArenaMutatorOption> MutatorsByKey;
 
@@ -59,6 +60,7 @@ public static class ReflexArenaModuleCatalog
             .ToArray();
 
         SupportedMapsByMode = BuildSupportedMapsByMode(Modes, MapGroups);
+        SupportedModesByMap = BuildSupportedModesByMap(Modes);
     }
 
     public static bool IsValidMode(string? mode) =>
@@ -124,6 +126,21 @@ public static class ReflexArenaModuleCatalog
                supportedMaps.Contains(mapKey!);
     }
 
+    public static IReadOnlyList<string> GetSupportedModesForMap(string? mapKey)
+    {
+        if (string.IsNullOrWhiteSpace(mapKey) ||
+            !SupportedModesByMap.TryGetValue(mapKey, out var supportedModes))
+        {
+            return [];
+        }
+
+        return Modes
+            .Select(mode => mode.Key)
+            .Where(supportedModes.Contains)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     public static string ResolveStartMap(string? mapKey, string? mode)
     {
         if (IsSupportedMapForMode(mapKey, mode))
@@ -184,6 +201,35 @@ public static class ReflexArenaModuleCatalog
         }
 
         return supportedMapsByMode;
+    }
+
+    private static IReadOnlyDictionary<string, IReadOnlySet<string>> BuildSupportedModesByMap(
+        IEnumerable<ReflexArenaModeOption> modes)
+    {
+        var mapsByMode = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var mode in modes)
+        {
+            IEnumerable<string> supportedMapKeys = SupportedMapsByMode.TryGetValue(mode.Key, out var supportedMaps)
+                ? supportedMaps
+                : [];
+
+            foreach (var mapKey in supportedMapKeys)
+            {
+                if (!mapsByMode.TryGetValue(mapKey, out var supportedModes))
+                {
+                    supportedModes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    mapsByMode[mapKey] = supportedModes;
+                }
+
+                supportedModes.Add(mode.Key);
+            }
+        }
+
+        return mapsByMode.ToDictionary(
+            entry => entry.Key,
+            entry => (IReadOnlySet<string>)entry.Value,
+            StringComparer.OrdinalIgnoreCase);
     }
 
     private static string HumanizeLabel(string key)

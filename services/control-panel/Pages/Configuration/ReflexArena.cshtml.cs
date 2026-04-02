@@ -59,6 +59,9 @@ public sealed class ReflexArenaModel(
     public bool IsMapSupportedForSelectedMode(string mapKey) =>
         ReflexArenaModuleCatalog.IsSupportedMapForMode(mapKey, Input.Mode);
 
+    public IReadOnlyList<string> GetSupportedModesForMap(string mapKey) =>
+        ReflexArenaModuleCatalog.GetSupportedModesForMap(mapKey);
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         await LoadAsync(cancellationToken);
@@ -159,6 +162,7 @@ public sealed class ReflexArenaModel(
 
     private void NormalizeInput()
     {
+        Input.StartMap = ReflexArenaModuleCatalog.ResolveStartMap(Input.StartMap, Input.Mode);
         Input.SelectedMutators = ReflexArenaModuleCatalog.NormalizeMutatorSelection(Input.SelectedMutators);
         Input.Country = Input.Country.Trim().ToUpperInvariant();
     }

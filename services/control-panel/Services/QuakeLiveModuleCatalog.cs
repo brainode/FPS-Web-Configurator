@@ -8,6 +8,7 @@ namespace control_panel.Services;
 public static class QuakeLiveModuleCatalog
 {
     private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> SupportedMapsByFactory;
+    private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> SupportedFactoriesByMap;
 
     public static IReadOnlyList<QuakeLiveFactoryOption> Factories { get; }
     public static IReadOnlyList<QuakeLiveMapGroup> MapGroups { get; }
@@ -42,6 +43,7 @@ public static class QuakeLiveModuleCatalog
             .ToArray();
 
         SupportedMapsByFactory = BuildSupportedMapsByFactory(Factories, MapGroups);
+        SupportedFactoriesByMap = BuildSupportedFactoriesByMap(Factories);
     }
 
     public static bool IsValidFactory(string? factory) =>
@@ -91,6 +93,21 @@ public static class QuakeLiveModuleCatalog
         return string.IsNullOrWhiteSpace(factory) ||
                !SupportedMapsByFactory.TryGetValue(factory, out var supportedMaps) ||
                supportedMaps.Contains(mapKey!);
+    }
+
+    public static IReadOnlyList<string> GetSupportedFactoriesForMap(string? mapKey)
+    {
+        if (string.IsNullOrWhiteSpace(mapKey) ||
+            !SupportedFactoriesByMap.TryGetValue(mapKey, out var supportedFactories))
+        {
+            return [];
+        }
+
+        return Factories
+            .Select(factory => factory.Key)
+            .Where(supportedFactories.Contains)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     public static List<string> NormalizeMapSelection(
@@ -145,6 +162,35 @@ public static class QuakeLiveModuleCatalog
         }
 
         return supportedMapsByFactory;
+    }
+
+    private static IReadOnlyDictionary<string, IReadOnlySet<string>> BuildSupportedFactoriesByMap(
+        IEnumerable<QuakeLiveFactoryOption> factories)
+    {
+        var factoriesByMap = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var factory in factories)
+        {
+            IEnumerable<string> supportedMapKeys = SupportedMapsByFactory.TryGetValue(factory.Key, out var supportedMaps)
+                ? supportedMaps
+                : [];
+
+            foreach (var mapKey in supportedMapKeys)
+            {
+                if (!factoriesByMap.TryGetValue(mapKey, out var supportedFactories))
+                {
+                    supportedFactories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    factoriesByMap[mapKey] = supportedFactories;
+                }
+
+                supportedFactories.Add(factory.Key);
+            }
+        }
+
+        return factoriesByMap.ToDictionary(
+            entry => entry.Key,
+            entry => (IReadOnlySet<string>)entry.Value,
+            StringComparer.OrdinalIgnoreCase);
     }
 
     // ── JSON deserialization DTOs ─────────────────────────────────────────────

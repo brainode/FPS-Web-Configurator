@@ -55,6 +55,12 @@ public sealed class QuakeLiveModel(
     public bool IsMapSelected(string mapKey) =>
         Input.SelectedMaps.Contains(mapKey, StringComparer.OrdinalIgnoreCase);
 
+    public bool IsMapSupportedForSelectedFactory(string mapKey) =>
+        QuakeLiveModuleCatalog.IsSupportedMapForFactory(mapKey, Input.Factory);
+
+    public IReadOnlyList<string> GetSupportedFactoriesForMap(string mapKey) =>
+        QuakeLiveModuleCatalog.GetSupportedFactoriesForMap(mapKey);
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         await LoadAsync(cancellationToken);

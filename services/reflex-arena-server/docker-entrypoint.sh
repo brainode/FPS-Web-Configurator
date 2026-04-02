@@ -18,6 +18,72 @@ write_optional_line() {
     fi
 }
 
+rewrite_default_cfg() {
+    file="$1"
+    tmp_file="${file}.tmp"
+
+    awk -v mode="$REFLEX_MODE" -v map="$REFLEX_START_MAP" -v mutators="$REFLEX_START_MUTATORS" '
+        BEGIN {
+            sawMode = 0
+            sawMap = 0
+            sawWorkshopMap = 0
+            sawRotation = 0
+            sawMutators = 0
+        }
+        /^sv_startmode[[:space:]]+/ {
+            print "sv_startmode " mode
+            sawMode = 1
+            next
+        }
+        /^sv_startmap[[:space:]]+/ {
+            print "sv_startmap " map
+            sawMap = 1
+            next
+        }
+        /^sv_startwmap[[:space:]]+/ {
+            print "// sv_startwmap 0"
+            sawWorkshopMap = 1
+            next
+        }
+        /^sv_startrotation[[:space:]]+/ {
+            print "// sv_startrotation default"
+            sawRotation = 1
+            next
+        }
+        /^sv_startmutators[[:space:]]+/ || /^\/\/ sv_startmutators[[:space:]]+/ {
+            if (length(mutators) > 0) {
+                print "sv_startmutators " mutators
+            } else {
+                print "// sv_startmutators instagib"
+            }
+            sawMutators = 1
+            next
+        }
+        {
+            print
+        }
+        END {
+            if (!sawMode) {
+                print "sv_startmode " mode
+            }
+            if (!sawMap) {
+                print "sv_startmap " map
+            }
+            if (!sawWorkshopMap) {
+                print "// sv_startwmap 0"
+            }
+            if (!sawRotation) {
+                print "// sv_startrotation default"
+            }
+            if (length(mutators) > 0 && !sawMutators) {
+                print "sv_startmutators " mutators
+            }
+        }
+    ' "$file" > "$tmp_file"
+
+    mv "$tmp_file" "$file"
+}
+
 REFLEX_INSTALL_DIR="${REFLEX_INSTALL_DIR:-/opt/reflex-arena}"
 REFLEX_DATA_DIR="${REFLEX_DATA_DIR:-/var/lib/reflex-arena}"
 REFLEX_RUN_USER="${REFLEX_RUN_USER:-reflex}"
@@ -60,6 +126,11 @@ write_optional_line sv_startmutators "$REFLEX_START_MUTATORS" >> "${REFLEX_INSTA
 write_optional_line sv_password "$REFLEX_PASSWORD" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_optional_line sv_refpassword "$REFLEX_REF_PASSWORD" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 
+# Reflex ships a stock dedicatedserver_default.cfg with sv_startrotation default
+# and a workshop map configured. Comment those out in-place so the dedicated
+# server falls back to the selected local start map instead of empty/default.
+rewrite_default_cfg "${REFLEX_INSTALL_DIR}/dedicatedserver_default.cfg"
+
 printf '[reflex-arena] Mode: %s\n' "$REFLEX_MODE"
 printf '[reflex-arena] Start map: %s\n' "$REFLEX_START_MAP"
 printf '[reflex-arena] Game port: %s\n' "$REFLEX_GAME_PORT"
@@ -75,6 +146,17 @@ export HOME="$REFLEX_DATA_DIR"
 export USER="$REFLEX_RUN_USER"
 export LOGNAME="$REFLEX_RUN_USER"
 export LD_LIBRARY_PATH="${REFLEX_INSTALL_DIR}:${REFLEX_INSTALL_DIR}/linux64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+
+# Reflex processes command-line cvars after dedicatedserver.cfg. Repeat the
+# startup pair here so the selected mode/map wins over any stock defaults.
+set -- \
+    +sv_startmode "$REFLEX_MODE" \
+    +sv_startmap "$REFLEX_START_MAP" \
+    "$@"
+
+if [ -n "$REFLEX_START_MUTATORS" ]; then
+    set -- +sv_startmutators "$REFLEX_START_MUTATORS" "$@"
+fi
 
 if [ "$(id -u)" = "0" ]; then
     exec gosu "$REFLEX_RUN_USER" env \

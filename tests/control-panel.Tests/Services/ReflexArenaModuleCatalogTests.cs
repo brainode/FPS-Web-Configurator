@@ -69,4 +69,15 @@ public sealed class ReflexArenaModuleCatalogTests
         Assert.Contains("SkyTemples", maps);
         Assert.DoesNotContain("AbandonedShelter", maps);
     }
+
+    [Fact]
+    public void GetSupportedModesForMap_ReturnsMatchingStockModes()
+    {
+        var modes = ReflexArenaModuleCatalog.GetSupportedModesForMap("Aerowalk");
+
+        Assert.Contains("1v1", modes);
+        Assert.Contains("2v2", modes);
+        Assert.Contains("tdm", modes);
+        Assert.DoesNotContain("ctf", modes);
+    }
 }

@@ -572,6 +572,17 @@ h4,
   background: rgba(245, 130, 32, 0.08);
 }
 
+.map-check.is-disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+}
+
+.map-check.is-disabled:hover {
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .sticky-actions {
   position: sticky;
   bottom: 1rem;
