@@ -111,6 +111,8 @@ CFG
 write_line sv_hostname "$REFLEX_HOSTNAME" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_startmode "$REFLEX_MODE" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_startmap "$REFLEX_START_MAP" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
+write_line sv_startwmap "0" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
+write_line sv_startrotation "" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_maxclients "$REFLEX_MAXCLIENTS" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_steam "$REFLEX_STEAM" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_allowedit "$REFLEX_ALLOW_EDIT" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
@@ -150,6 +152,7 @@ export LD_LIBRARY_PATH="${REFLEX_INSTALL_DIR}:${REFLEX_INSTALL_DIR}/linux64${LD_
 # Reflex processes command-line cvars after dedicatedserver.cfg. Repeat the
 # startup pair here so the selected mode/map wins over any stock defaults.
 set -- \
+    +sv_startwmap 0 \
     +sv_startrotation "" \
     +sv_startmode "$REFLEX_MODE" \
     +sv_startmap "$REFLEX_START_MAP" \
