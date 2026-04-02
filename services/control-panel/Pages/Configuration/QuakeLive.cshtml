@@ -67,7 +67,7 @@
             </div>
         </div>
 
-        <form method="post" class="vstack gap-4">
+        <form method="post" class="vstack gap-4" data-choice-filter-scope="true">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 panel-alert validation-summary"></div>
 
             <div class="row g-4">
@@ -81,13 +81,13 @@
                         <div class="panel-card-body vstack gap-3">
                             <div>
                                 <label asp-for="Input.Factory" class="form-label"></label>
-                                <select asp-for="Input.Factory" class="form-select">
+                                <select asp-for="Input.Factory" class="form-select" data-choice-filter-source="true">
                                     @foreach (var factory in Model.FactoryOptions)
                                     {
-                                        <option value="@factory.Key">@factory.Label</option>
+                                        <option value="@factory.Key" data-choice-filter-preferred-value="@(factory.RecommendedMaps.FirstOrDefault() ?? string.Empty)">@factory.Label</option>
                                     }
                                 </select>
-                                <div class="form-hint">@(Model.FactoryOptions.FirstOrDefault(f => f.Key == Model.Input.Factory)?.Description ?? string.Empty)</div>
+                                <div class="form-hint">@(Model.FactoryOptions.FirstOrDefault(f => f.Key == Model.Input.Factory)?.Description ?? string.Empty) Available stock maps update immediately when you switch factory.</div>
                                 <span asp-validation-for="Input.Factory" class="text-danger small"></span>
                             </div>
                             <div>
@@ -296,7 +296,7 @@
                                     <div class="map-grid">
                                         @foreach (var map in group.Maps)
                                         {
-                                            <label class="map-check" for="map-@map.Key">
+                                            <label class="map-check @(Model.IsMapSupportedForSelectedFactory(map.Key) ? string.Empty : "is-disabled")" for="map-@map.Key">
                                                 <input id="map-@map.Key"
                                                        class="form-check-input"
                                                        type="checkbox"
@@ -304,6 +304,8 @@
                                                        value="@map.Key"
                                                        data-map-label="@map.Label"
                                                        data-map-group="@group.Key"
+                                                       data-choice-filter-values="@string.Join(' ', Model.GetSupportedFactoriesForMap(map.Key))"
+                                                       disabled="@(!Model.IsMapSupportedForSelectedFactory(map.Key))"
                                                        @(Model.IsMapSelected(map.Key) ? "checked" : null) />
                                                 <span>@map.Label</span>
                                             </label>

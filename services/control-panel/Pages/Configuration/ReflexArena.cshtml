@@ -67,7 +67,7 @@
             </div>
         </div>
 
-        <form method="post" class="vstack gap-4">
+        <form method="post" class="vstack gap-4" data-choice-filter-scope="true">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 panel-alert validation-summary"></div>
 
             <div class="row g-4">
@@ -76,15 +76,15 @@
                         <div class="panel-card-header">
                             <span class="section-kicker">Startup</span>
                             <h2 class="panel-title">Mode &amp; opening map</h2>
-                            <p class="panel-text mb-0">The selected mode controls which stock maps remain enabled in the map picker below.</p>
+                            <p class="panel-text mb-0">The map picker updates instantly when you switch modes, so the opening map choices always match the active ruleset.</p>
                         </div>
                         <div class="panel-card-body vstack gap-3">
                             <div>
                                 <label asp-for="Input.Mode" class="form-label"></label>
-                                <select asp-for="Input.Mode" class="form-select">
+                                <select asp-for="Input.Mode" class="form-select" data-choice-filter-source="true">
                                     @foreach (var mode in Model.ModeOptions)
                                     {
-                                        <option value="@mode.Key">@mode.Label</option>
+                                        <option value="@mode.Key" data-choice-filter-preferred-value="@mode.RecommendedMap">@mode.Label</option>
                                     }
                                 </select>
                                 <div class="form-hint">@(Model.ModeOptions.FirstOrDefault(mode => mode.Key == Model.Input.Mode)?.Description ?? string.Empty)</div>
@@ -92,18 +92,20 @@
                             </div>
                             <div>
                                 <label asp-for="Input.StartMap" class="form-label"></label>
-                                <select asp-for="Input.StartMap" class="form-select">
+                                <select asp-for="Input.StartMap" class="form-select" data-choice-filter-target-select="true">
                                     @foreach (var group in Model.MapGroups)
                                     {
                                         <optgroup label="@group.Label">
                                             @foreach (var map in group.Maps)
                                             {
-                                                <option value="@map.Key" disabled="@(!Model.IsMapSupportedForSelectedMode(map.Key))">@map.Label</option>
+                                                <option value="@map.Key"
+                                                        data-choice-filter-values="@string.Join(' ', Model.GetSupportedModesForMap(map.Key))"
+                                                        disabled="@(!Model.IsMapSupportedForSelectedMode(map.Key))">@map.Label</option>
                                             }
                                         </optgroup>
                                     }
                                 </select>
-                                <div class="form-hint">Only enabled maps support the selected mode according to the stock Linux dedicated server files.</div>
+                                <div class="form-hint">Changing the mode updates the opening map picker immediately. Only maps supported by the selected mode stay enabled.</div>
                                 <span asp-validation-for="Input.StartMap" class="text-danger small"></span>
                             </div>
                             <div>
@@ -177,7 +179,7 @@
                         <div class="panel-card-header">
                             <span class="section-kicker">Access</span>
                             <h2 class="panel-title">Passwords &amp; admin control</h2>
-                            <p class="panel-text mb-0">Join and referee passwords are stored in SQLite and reused on restart unless you replace or clear them.</p>
+                            <p class="panel-text mb-0">Join password is optional. Referee password is required — it doubles as the rcon password used by the entrypoint to load custom maps after startup.</p>
                         </div>
                         <div class="panel-card-body vstack gap-3">
                             <div>
@@ -225,7 +227,7 @@
                                            value="@Model.Input.RefPassword"
                                            class="form-control"
                                            autocomplete="new-password"
-                                           placeholder="@(Model.HasConfiguredRefPassword ? "Leave empty to keep the referee password" : "Optional referee password")" />
+                                           placeholder="@(Model.HasConfiguredRefPassword ? "Leave empty to keep the current password" : "Set referee / rcon password")" />
                                     <button type="button"
                                             class="btn btn-outline-secondary password-toggle"
                                             data-password-toggle="rcon-password"
@@ -240,19 +242,12 @@
                                         <span class="status-dot"></span>
                                         <span>@Model.RefPasswordStateLabel</span>
                                     </span>
-                                    @if (Model.HasConfiguredRefPassword)
-                                    {
-                                        <label class="form-check credential-clear-toggle mt-2">
-                                            <input asp-for="Input.ClearRefPassword" class="form-check-input" />
-                                            <span class="form-check-label">Clear saved referee password</span>
-                                        </label>
-                                    }
                                 </div>
                             </div>
 
                             <div class="server-note">
                                 <strong>Current scope:</strong>
-                                <span>the module controls startup mode, opening map and stock mutators. Custom rotation files can be added later once we wire the Reflex rotation format end to end.</span>
+                                <span>the module controls startup mode, opening map and stock mutators. The Reflex runtime now removes the stock start rotation so the selected opening map wins.</span>
                             </div>
                         </div>
                     </div>

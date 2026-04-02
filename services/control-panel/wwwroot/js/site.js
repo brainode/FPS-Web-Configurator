@@ -55,6 +55,105 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    function normalizeChoiceFilterValue(text) {
+        return (text || "").trim().toLowerCase();
+    }
+
+    function readChoiceFilterValues(element) {
+        return (element.getAttribute("data-choice-filter-values") || "")
+            .split(/\s+/)
+            .map(normalizeChoiceFilterValue)
+            .filter(Boolean);
+    }
+
+    function toggleChoiceAvailability(element, isAvailable) {
+        element.disabled = !isAvailable;
+
+        if (element instanceof HTMLInputElement && !isAvailable) {
+            element.checked = false;
+        }
+
+        var decoratedParent = element.closest(".map-check, .rule-toggle, label");
+        if (decoratedParent) {
+            decoratedParent.classList.toggle("is-disabled", !isAvailable);
+            decoratedParent.setAttribute("aria-disabled", isAvailable ? "false" : "true");
+        }
+    }
+
+    function syncFilteredSelect(select, preferredValue) {
+        var previousValue = select.value;
+        var enabledOptions = Array.from(select.options).filter(function (option) {
+            return !option.disabled;
+        });
+
+        if (enabledOptions.length === 0) {
+            select.disabled = true;
+            return;
+        }
+
+        select.disabled = false;
+
+        var nextValue = enabledOptions.some(function (option) {
+            return option.value === previousValue;
+        })
+            ? previousValue
+            : "";
+
+        if (!nextValue && preferredValue) {
+            var preferredOption = enabledOptions.find(function (option) {
+                return option.value === preferredValue;
+            });
+            nextValue = preferredOption ? preferredOption.value : "";
+        }
+
+        if (!nextValue) {
+            nextValue = enabledOptions[0].value;
+        }
+
+        select.value = nextValue;
+    }
+
+    function bindChoiceFilters() {
+        document.querySelectorAll("[data-choice-filter-scope='true']").forEach(function (scope) {
+            var sourceSelect = scope.querySelector("[data-choice-filter-source='true']");
+            if (!sourceSelect) {
+                return;
+            }
+
+            var sourceOptions = Array.from(sourceSelect.options).map(function (option) {
+                return {
+                    value: option.value,
+                    preferredValue: option.getAttribute("data-choice-filter-preferred-value") || ""
+                };
+            });
+
+            var filterableElements = Array.from(scope.querySelectorAll("[data-choice-filter-values]"));
+            var targetSelects = Array.from(scope.querySelectorAll("select[data-choice-filter-target-select='true']"));
+
+            function syncChoiceFilterScope() {
+                var selectedSourceValue = normalizeChoiceFilterValue(sourceSelect.value);
+                var currentSource = sourceOptions.find(function (option) {
+                    return normalizeChoiceFilterValue(option.value) === selectedSourceValue;
+                }) || null;
+
+                filterableElements.forEach(function (element) {
+                    var supportedValues = readChoiceFilterValues(element);
+                    var isAvailable = supportedValues.length === 0 || supportedValues.indexOf(selectedSourceValue) !== -1;
+                    toggleChoiceAvailability(element, isAvailable);
+                });
+
+                targetSelects.forEach(function (select) {
+                    syncFilteredSelect(select, currentSource ? currentSource.preferredValue : "");
+                });
+
+                rebuildStartMapOptions();
+            }
+
+            sourceSelect.addEventListener("change", syncChoiceFilterScope);
+            syncChoiceFilterScope();
+        });
+    }
+
     function rebuildStartMapOptions() {
         if (!startMapSelect) {
             return;
@@ -112,11 +211,15 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    bindChoiceFilters();
+
     document.querySelectorAll("[data-map-group-select]").forEach(function (button) {
         button.addEventListener("click", function () {
             var group = button.getAttribute("data-map-group-select");
             document.querySelectorAll("input[data-map-group='" + group + "']").forEach(function (checkbox) {
-                checkbox.checked = true;
+                if (!checkbox.disabled) {
+                    checkbox.checked = true;
+                }
             });
             rebuildStartMapOptions();
         });

@@ -48,9 +48,23 @@ public sealed class ReflexArenaModuleCatalogTests
     [Fact]
     public void NormalizeMutatorSelection_FiltersInvalidEntries()
     {
-        var normalized = ReflexArenaModuleCatalog.NormalizeMutatorSelection(["instagib", "unknown", "instagib"]);
+        var normalized = ReflexArenaModuleCatalog.NormalizeMutatorSelection(
+            ["instagib", "lowgravity", "unknown", "instagib", "arena"]);
 
-        Assert.Equal(["instagib"], normalized);
+        Assert.Equal(["instagib", "lowgravity", "arena"], normalized);
+    }
+
+    [Fact]
+    public void Catalog_ExposesExpandedStockMutators()
+    {
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("arena"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("bighead"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("handicap"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("instagib"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("lowgravity"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("meleeonly"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("vampire"));
+        Assert.NotNull(ReflexArenaModuleCatalog.FindMutator("warmup"));
     }
 
     [Fact]
@@ -61,6 +75,21 @@ public sealed class ReflexArenaModuleCatalogTests
     }
 
     [Fact]
+    public void WorkshopMapMetadata_UsesCatalogAsSingleSourceOfTruth()
+    {
+        var aerowalk = ReflexArenaModuleCatalog.FindMap("Aerowalk");
+        var workshopMap = ReflexArenaModuleCatalog.FindMapByWorkshopId("608517732");
+
+        Assert.NotNull(aerowalk);
+        Assert.Equal("608517732", aerowalk!.WorkshopId);
+        Assert.False(aerowalk.BuiltIn);
+        Assert.NotNull(workshopMap);
+        Assert.Equal("Aerowalk", workshopMap!.Key);
+        Assert.True(ReflexArenaModuleCatalog.UsesWorkshopStartup("Aerowalk"));
+        Assert.False(ReflexArenaModuleCatalog.UsesWorkshopStartup("Fusion"));
+    }
+
+    [Fact]
     public void GetSupportedMapsForMode_ReturnsCatalogOrderedMaps()
     {
         var maps = ReflexArenaModuleCatalog.GetSupportedMapsForMode("tdm");
@@ -68,5 +97,16 @@ public sealed class ReflexArenaModuleCatalogTests
         Assert.Contains("Fusion", maps);
         Assert.Contains("SkyTemples", maps);
         Assert.DoesNotContain("AbandonedShelter", maps);
+    }
+
+    [Fact]
+    public void GetSupportedModesForMap_ReturnsMatchingStockModes()
+    {
+        var modes = ReflexArenaModuleCatalog.GetSupportedModesForMap("Aerowalk");
+
+        Assert.Contains("1v1", modes);
+        Assert.Contains("2v2", modes);
+        Assert.Contains("tdm", modes);
+        Assert.DoesNotContain("ctf", modes);
     }
 }

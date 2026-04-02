@@ -28,10 +28,13 @@ public static class ReflexArenaConfigurationSerializer
         {
             using var document = JsonDocument.Parse(json);
             var root = document.RootElement;
+            var workshopStartMapId = GameConfigJsonReader.ReadString(root, "sv_startwmap", string.Empty);
+            var mappedWorkshopStartMap = ReflexArenaModuleCatalog.FindMapByWorkshopId(workshopStartMapId)?.Key;
 
             settings.Hostname = GameConfigJsonReader.ReadString(root, "sv_hostname", settings.Hostname);
             settings.Mode = GameConfigJsonReader.ReadString(root, "sv_startmode", settings.Mode);
-            settings.StartMap = GameConfigJsonReader.ReadString(root, "sv_startmap", settings.StartMap);
+            settings.StartMap = mappedWorkshopStartMap
+                ?? GameConfigJsonReader.ReadString(root, "sv_startmap", settings.StartMap);
             settings.Mutators = ReflexArenaModuleCatalog.NormalizeMutatorSelection(
                 GameConfigJsonReader.ReadStringList(root, "sv_startmutators"));
             settings.MaxClients = GameConfigJsonReader.ReadInt(root, "sv_maxclients", settings.MaxClients);
@@ -56,11 +59,13 @@ public static class ReflexArenaConfigurationSerializer
     {
         var normalizedMutators = ReflexArenaModuleCatalog.NormalizeMutatorSelection(settings.Mutators);
         var resolvedStartMap = ReflexArenaModuleCatalog.ResolveStartMap(settings.StartMap, settings.Mode);
+        var workshopStartMapId = ReflexArenaModuleCatalog.GetWorkshopMapId(resolvedStartMap);
         var payload = new Dictionary<string, string>
         {
             ["sv_hostname"] = settings.Hostname,
             ["sv_startmode"] = settings.Mode,
-            ["sv_startmap"] = resolvedStartMap,
+            ["sv_startmap"] = workshopStartMapId is null ? resolvedStartMap : string.Empty,
+            ["sv_startwmap"] = workshopStartMapId ?? string.Empty,
             ["sv_startmutators"] = string.Join(' ', normalizedMutators),
             ["sv_maxclients"] = settings.MaxClients.ToString(),
             ["sv_steam"] = settings.SteamEnabled ? "1" : "0",

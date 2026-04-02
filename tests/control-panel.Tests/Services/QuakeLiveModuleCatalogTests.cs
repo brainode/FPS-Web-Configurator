@@ -184,6 +184,16 @@ public sealed class QuakeLiveModuleCatalogTests
     }
 
     [Fact]
+    public void GetSupportedFactoriesForMap_ReturnsMatchingFactories()
+    {
+        var factories = QuakeLiveModuleCatalog.GetSupportedFactoriesForMap("courtyard");
+
+        Assert.Contains("ctf", factories);
+        Assert.Contains("race", factories);
+        Assert.DoesNotContain("duel", factories);
+    }
+
+    [Fact]
     public void NormalizeMapSelection_FiltersMapsUnsupportedByFactory()
     {
         var result = QuakeLiveModuleCatalog.NormalizeMapSelection(

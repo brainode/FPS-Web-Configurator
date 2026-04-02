@@ -1062,7 +1062,66 @@ The view structure:
 - Map checkboxes use `name="Input.SelectedMaps"` — ASP.NET Core model binding collects all checked values into `List<string>`.
 - Anti-forgery tokens are automatic in Razor Pages forms.
 
-### 7c. Navigation (automatic)
+### 7c. Dynamic mode/factory -> map filtering (shared UI contract)
+
+If your game has a dependency such as:
+- selected mode limits valid opening maps;
+- selected factory limits valid rotation maps;
+- selected ruleset limits valid map pool entries;
+
+then **do not add game-specific JavaScript functions to `wwwroot/js/site.js`**.
+The shared script must stay generic and be driven entirely by neutral `data-*` attributes.
+
+Use this contract:
+
+- Add `data-choice-filter-scope="true"` to the form or container that owns the filter interaction.
+- Add `data-choice-filter-source="true"` to the controlling `<select>` (`Mode`, `Factory`, etc.).
+- On each source `<option>`, set `data-choice-filter-preferred-value="..."` if the source has a preferred default target choice.
+- Add `data-choice-filter-target-select="true"` to a dependent `<select>` such as `Opening map`.
+- On each dependent `<option>` or map checkbox `<input>`, set `data-choice-filter-values="..."` to the space-separated list of source keys that allow it.
+
+Example:
+
+```html
+<form method="post" data-choice-filter-scope="true">
+  <select asp-for="Input.Factory" data-choice-filter-source="true">
+    <option value="duel" data-choice-filter-preferred-value="aerowalk">Duel</option>
+    <option value="ctf" data-choice-filter-preferred-value="courtyard">CTF</option>
+  </select>
+
+  <select asp-for="Input.StartMap" data-choice-filter-target-select="true">
+    <option value="aerowalk" data-choice-filter-values="duel ca tdm">Aerowalk</option>
+    <option value="courtyard" data-choice-filter-values="ctf oneflag race">Courtyard</option>
+  </select>
+</form>
+```
+
+For map grids:
+
+```html
+<input type="checkbox"
+       name="Input.SelectedMaps"
+       value="@map.Key"
+       data-choice-filter-values="@string.Join(' ', Model.GetSupportedFactoriesForMap(map.Key))"
+       disabled="@(!Model.IsMapSupportedForSelectedFactory(map.Key))" />
+```
+
+Required server-side support:
+
+- The catalog should expose the normal forward lookup (`IsSupportedMapForFactory`, `IsSupportedMapForMode`) **and** a reverse lookup for the UI (`GetSupportedFactoriesForMap`, `GetSupportedModesForMap`).
+- The page model should expose small helpers that the Razor view can call when rendering `data-choice-filter-values`.
+- Keep server-side normalization and validation even if the UI filters choices live. The browser is only a convenience layer; the catalog remains the source of truth.
+
+UI behavior handled centrally by the shared script:
+
+- invalid choices are disabled immediately when the source select changes;
+- dependent selects fall back to the current valid choice, then preferred value, then first valid value;
+- disabled map cards receive the shared `is-disabled` visual state;
+- "All" group buttons skip disabled checkboxes automatically.
+
+If a new module needs source->choice filtering, extend the shared generic contract rather than adding a `{GameName}Something()` function to `site.js`.
+
+### 7d. Navigation (automatic)
 
 Navigation links are generated dynamically from registered adapters via `IModuleVisibilityService` in `_Layout.cshtml`. **No manual edits needed** — your module appears in the sidebar automatically after DI registration (Step 6).
 
@@ -1481,14 +1540,15 @@ Then open the panel at `http://localhost:5099`, log in, and verify:
 | 7 | Register in DI | `Program.cs` (one line) |
 | 8 | Dashboard order | `Services/PanelGameModuleCatalog.cs` `ModuleOrder` array |
 | 9 | Config page | `Pages/Configuration/{Game}.cshtml` + `.cshtml.cs` |
-| 10 | Nav link | Automatic (via `IModuleVisibilityService` in `_Layout.cshtml`) |
-| 11 | Unit tests | `tests/control-panel.Tests/Services/{Game}*.cs` |
-| 12 | Container | `services/{game}-server/Dockerfile` + `docker-entrypoint.sh` |
-| 13 | Compose entry | `docker-compose.yml` (service + volume) |
-| 14 | Agent config | `services/docker-agent/agent.py` `GAME_CONFIGS` |
-| 15 | Agent env vars | `docker-compose.yml` under `docker-agent` |
-| 16 | Env example | `.env.example` |
-| 17 | Build & test | `dotnet test` + `docker compose --profile game build` |
+| 10 | Dynamic UI filter | If mode/factory changes valid maps, use the shared `data-choice-filter-*` contract in Razor + catalog helpers |
+| 11 | Nav link | Automatic (via `IModuleVisibilityService` in `_Layout.cshtml`) |
+| 12 | Unit tests | `tests/control-panel.Tests/Services/{Game}*.cs` |
+| 13 | Container | `services/{game}-server/Dockerfile` + `docker-entrypoint.sh` |
+| 14 | Compose entry | `docker-compose.yml` (service + volume) |
+| 15 | Agent config | `services/docker-agent/agent.py` `GAME_CONFIGS` |
+| 16 | Agent env vars | `docker-compose.yml` under `docker-agent` |
+| 17 | Env example | `.env.example` |
+| 18 | Build & test | `dotnet test` + `docker compose --profile game build` |
 
 ---
 

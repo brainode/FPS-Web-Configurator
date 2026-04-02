@@ -39,12 +39,13 @@ public sealed class ReflexArenaGameAdapterTests
         {
             Mode = "ffa",
             StartMap = "Phobos",
-            Mutators = ["instagib"],
+            Mutators = ["instagib", "lowgravity"],
         });
 
         var summary = _adapter.GetSummary(json);
 
         Assert.Contains("Instagib", summary.ModeFlags);
+        Assert.Contains("Low Gravity", summary.ModeFlags);
     }
 
     [Fact]
@@ -58,6 +59,21 @@ public sealed class ReflexArenaGameAdapterTests
         Assert.Contains("REFLEX_MAXCLIENTS", env.Keys);
         Assert.Contains("REFLEX_PASSWORD", env.Keys);
         Assert.Contains("REFLEX_REF_PASSWORD", env.Keys);
+    }
+
+    [Fact]
+    public void GetContainerEnv_WorkshopMap_AddsWorkshopStartupEnv()
+    {
+        var json = ReflexArenaConfigurationSerializer.Serialize(new ReflexArenaServerSettings
+        {
+            Mode = "tdm",
+            StartMap = "Aerowalk",
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("Aerowalk", env["REFLEX_START_MAP"]);
+        Assert.Equal("608517732", env["REFLEX_START_WORKSHOP_MAP"]);
     }
 
     [Fact]

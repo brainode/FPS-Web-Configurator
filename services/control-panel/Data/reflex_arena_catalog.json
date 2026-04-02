@@ -1,4 +1,86 @@
 {
+  "maps": [
+    {
+      "key": "AbandonedShelter",
+      "label": "Abandoned Shelter",
+      "workshopId": "608404670"
+    },
+    {
+      "key": "Aerowalk",
+      "label": "Aerowalk",
+      "workshopId": "608517732"
+    },
+    {
+      "key": "Ashur",
+      "label": "Ashur",
+      "workshopId": "595880466"
+    },
+    {
+      "key": "Fusion",
+      "label": "Fusion",
+      "builtIn": true
+    },
+    {
+      "key": "Ruin",
+      "label": "Ruin",
+      "workshopId": "595872330"
+    },
+    {
+      "key": "SkyTemples",
+      "label": "Sky Temples",
+      "workshopId": "668054154"
+    },
+    {
+      "key": "TheCatalyst",
+      "label": "The Catalyst",
+      "workshopId": "608558613"
+    },
+    {
+      "key": "furnace",
+      "label": "Furnace",
+      "workshopId": "608417285"
+    },
+    {
+      "key": "Phobos",
+      "label": "Phobos",
+      "workshopId": "716386516"
+    },
+    {
+      "key": "Hieratic",
+      "label": "Hieratic",
+      "workshopId": "697335319"
+    },
+    {
+      "key": "ironguard",
+      "label": "Ironguard",
+      "workshopId": "841034911"
+    },
+    {
+      "key": "training_combat_stage_1",
+      "label": "Training Combat Stage 1",
+      "builtIn": true
+    },
+    {
+      "key": "training_combat_stage_2",
+      "label": "Training Combat Stage 2",
+      "builtIn": true
+    },
+    {
+      "key": "training_items_stage_1",
+      "label": "Training Items Stage 1",
+      "builtIn": true
+    },
+    {
+      "key": "training_move_stage_1",
+      "label": "Training Move Stage 1",
+      "builtIn": true
+    },
+    {
+      "key": "training_move_stage_2",
+      "label": "Training Move Stage 2",
+      "builtIn": true
+    }
+  ],
   "modes": [
     {
       "key": "1v1",
@@ -52,9 +134,44 @@
   ],
   "mutators": [
     {
+      "key": "arena",
+      "label": "Arena",
+      "description": "Respawn players into the arena-style ruleset for short elimination rounds."
+    },
+    {
+      "key": "bighead",
+      "label": "Big Head",
+      "description": "Enlarge player heads and gibs for a more chaotic, high-visibility match."
+    },
+    {
+      "key": "handicap",
+      "label": "Handicap",
+      "description": "Give trailing players extra health and armor to keep the scoreline closer."
+    },
+    {
       "key": "instagib",
       "label": "Instagib",
       "description": "Spawn into one-shot arena rules without needing a custom cfg."
+    },
+    {
+      "key": "lowgravity",
+      "label": "Low Gravity",
+      "description": "Reduce world gravity for floatier movement, jumps and projectile arcs."
+    },
+    {
+      "key": "meleeonly",
+      "label": "Melee Only",
+      "description": "Strip the match down to melee combat without weapon and ammo pickups."
+    },
+    {
+      "key": "vampire",
+      "label": "Vampire",
+      "description": "Convert dealt damage into health gain and remove health pickups from the map."
+    },
+    {
+      "key": "warmup",
+      "label": "Warmup",
+      "description": "Spawn players with warmup-style stacks and the full weapon set."
     }
   ],
   "mapGroups": [
