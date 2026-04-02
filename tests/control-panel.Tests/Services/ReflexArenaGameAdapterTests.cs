@@ -61,6 +61,21 @@ public sealed class ReflexArenaGameAdapterTests
     }
 
     [Fact]
+    public void GetContainerEnv_WorkshopMap_AddsWorkshopStartupEnv()
+    {
+        var json = ReflexArenaConfigurationSerializer.Serialize(new ReflexArenaServerSettings
+        {
+            Mode = "tdm",
+            StartMap = "Aerowalk",
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("Aerowalk", env["REFLEX_START_MAP"]);
+        Assert.Equal("608517732", env["REFLEX_START_WORKSHOP_MAP"]);
+    }
+
+    [Fact]
     public void CreateDefaultJson_ProducesDeserializableSettings()
     {
         var json = _adapter.CreateDefaultJson();

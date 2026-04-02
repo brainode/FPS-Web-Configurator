@@ -44,7 +44,7 @@ public sealed class ReflexArenaGameAdapter : IGameAdapter
     public IReadOnlyDictionary<string, string> GetContainerEnv(string? jsonSettings)
     {
         var settings = ReflexArenaConfigurationSerializer.Deserialize(jsonSettings);
-        return new Dictionary<string, string>
+        var env = new Dictionary<string, string>
         {
             ["REFLEX_HOSTNAME"] = settings.Hostname,
             ["REFLEX_MODE"] = settings.Mode,
@@ -57,6 +57,14 @@ public sealed class ReflexArenaGameAdapter : IGameAdapter
             ["REFLEX_PASSWORD"] = settings.ServerPassword,
             ["REFLEX_REF_PASSWORD"] = settings.RefPassword,
         };
+
+        var workshopStartMapId = ReflexArenaModuleCatalog.GetWorkshopMapId(settings.StartMap);
+        if (!string.IsNullOrWhiteSpace(workshopStartMapId))
+        {
+            env["REFLEX_START_WORKSHOP_MAP"] = workshopStartMapId;
+        }
+
+        return env;
     }
 
     public string CreateDefaultJson() => ReflexArenaSeedConfiguration.CreateDefaultJson();

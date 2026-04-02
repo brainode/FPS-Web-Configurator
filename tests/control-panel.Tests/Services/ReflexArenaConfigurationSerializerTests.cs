@@ -62,6 +62,30 @@ public sealed class ReflexArenaConfigurationSerializerTests
     }
 
     [Fact]
+    public void Serialize_WorkshopStartMap_UsesSvStartwmap()
+    {
+        var json = ReflexArenaConfigurationSerializer.Serialize(new ReflexArenaServerSettings
+        {
+            Mode = "tdm",
+            StartMap = "Aerowalk",
+        });
+
+        Assert.Contains("\"sv_startmap\": \"\"", json);
+        Assert.Contains("\"sv_startwmap\": \"608517732\"", json);
+    }
+
+    [Fact]
+    public void Deserialize_WorkshopStartMap_MapsBackToLogicalMapKey()
+    {
+        var json = """{"sv_startmode":"tdm","sv_startmap":"","sv_startwmap":"608517732"}""";
+
+        var settings = ReflexArenaConfigurationSerializer.Deserialize(json);
+
+        Assert.Equal("tdm", settings.Mode);
+        Assert.Equal("Aerowalk", settings.StartMap);
+    }
+
+    [Fact]
     public void Deserialize_UnsupportedMap_FallsBackToRecommendedMap()
     {
         var json = """{"sv_startmode":"ctf","sv_startmap":"Fusion"}""";
@@ -79,6 +103,7 @@ public sealed class ReflexArenaConfigurationSerializerTests
 
         Assert.Contains("sv_startmode", json);
         Assert.Contains("sv_startmap", json);
+        Assert.Contains("sv_startwmap", json);
         Assert.Contains("sv_startmutators", json);
         Assert.Contains("sv_refpassword", json);
     }

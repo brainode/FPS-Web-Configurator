@@ -61,6 +61,21 @@ public sealed class ReflexArenaModuleCatalogTests
     }
 
     [Fact]
+    public void WorkshopMapMetadata_UsesCatalogAsSingleSourceOfTruth()
+    {
+        var aerowalk = ReflexArenaModuleCatalog.FindMap("Aerowalk");
+        var workshopMap = ReflexArenaModuleCatalog.FindMapByWorkshopId("608517732");
+
+        Assert.NotNull(aerowalk);
+        Assert.Equal("608517732", aerowalk!.WorkshopId);
+        Assert.False(aerowalk.BuiltIn);
+        Assert.NotNull(workshopMap);
+        Assert.Equal("Aerowalk", workshopMap!.Key);
+        Assert.True(ReflexArenaModuleCatalog.UsesWorkshopStartup("Aerowalk"));
+        Assert.False(ReflexArenaModuleCatalog.UsesWorkshopStartup("Fusion"));
+    }
+
+    [Fact]
     public void GetSupportedMapsForMode_ReturnsCatalogOrderedMaps()
     {
         var maps = ReflexArenaModuleCatalog.GetSupportedMapsForMode("tdm");

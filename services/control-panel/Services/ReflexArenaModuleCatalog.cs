@@ -12,6 +12,7 @@ public static class ReflexArenaModuleCatalog
     private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> SupportedMapsByMode;
     private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> SupportedModesByMap;
     private static readonly IReadOnlyDictionary<string, ReflexArenaMapOption> MapsByKey;
+    private static readonly IReadOnlyDictionary<string, ReflexArenaMapOption> MapsByWorkshopId;
     private static readonly IReadOnlyDictionary<string, ReflexArenaMutatorOption> MutatorsByKey;
 
     public static IReadOnlyList<ReflexArenaModeOption> Modes { get; }
@@ -28,17 +29,29 @@ public static class ReflexArenaModuleCatalog
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         var doc = JsonSerializer.Deserialize<CatalogDoc>(stream, options)!;
 
+        MapsByKey = doc.Maps
+            .Select(map => new ReflexArenaMapOption(
+                map.Key,
+                string.IsNullOrWhiteSpace(map.Label) ? HumanizeLabel(map.Key) : map.Label,
+                string.IsNullOrWhiteSpace(map.WorkshopId) ? null : map.WorkshopId.Trim(),
+                map.BuiltIn))
+            .ToDictionary(map => map.Key, StringComparer.OrdinalIgnoreCase);
+
+        MapsByWorkshopId = MapsByKey.Values
+            .Where(map => !string.IsNullOrWhiteSpace(map.WorkshopId))
+            .ToDictionary(map => map.WorkshopId!, StringComparer.OrdinalIgnoreCase);
+
         MapGroups = doc.MapGroups
             .Select(group => new ReflexArenaMapGroup(
                 group.Key,
                 group.Label,
-                group.Maps.Select(mapKey => new ReflexArenaMapOption(mapKey, HumanizeLabel(mapKey))).ToArray()))
+                group.Maps.Select(mapKey =>
+                    MapsByKey.TryGetValue(mapKey, out var map)
+                        ? map
+                        : throw new InvalidOperationException(
+                            $"Map group '{group.Key}' references unknown map '{mapKey}' in reflex_arena_catalog.json."))
+                    .ToArray()))
             .ToArray();
-
-        MapsByKey = MapGroups
-            .SelectMany(group => group.Maps)
-            .DistinctBy(map => map.Key, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(map => map.Key, StringComparer.OrdinalIgnoreCase);
 
         AllMaps = MapsByKey.Keys
             .OrderBy(mapKey => mapKey, StringComparer.OrdinalIgnoreCase)
@@ -85,6 +98,11 @@ public static class ReflexArenaModuleCatalog
             ? null
             : map;
 
+    public static ReflexArenaMapOption? FindMapByWorkshopId(string? workshopId) =>
+        string.IsNullOrWhiteSpace(workshopId) || !MapsByWorkshopId.TryGetValue(workshopId, out var map)
+            ? null
+            : map;
+
     public static ReflexArenaMutatorOption? FindMutator(string? mutatorKey) =>
         string.IsNullOrWhiteSpace(mutatorKey) || !MutatorsByKey.TryGetValue(mutatorKey, out var mutator)
             ? null
@@ -95,6 +113,12 @@ public static class ReflexArenaModuleCatalog
 
     public static string GetMapLabel(string? mapKey) =>
         FindMap(mapKey)?.Label ?? HumanizeLabel(mapKey ?? string.Empty);
+
+    public static string? GetWorkshopMapId(string? mapKey) =>
+        FindMap(mapKey)?.WorkshopId;
+
+    public static bool UsesWorkshopStartup(string? mapKey) =>
+        !string.IsNullOrWhiteSpace(GetWorkshopMapId(mapKey));
 
     public static string GetRecommendedMap(string? mode) =>
         ResolveStartMap(null, mode);
@@ -247,9 +271,18 @@ public static class ReflexArenaModuleCatalog
 
     private sealed class CatalogDoc
     {
+        public List<MapDoc> Maps { get; set; } = [];
         public List<ModeDoc> Modes { get; set; } = [];
         public List<MutatorDoc> Mutators { get; set; } = [];
         public List<MapGroupDoc> MapGroups { get; set; } = [];
+    }
+
+    private sealed class MapDoc
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string? WorkshopId { get; set; }
+        public bool BuiltIn { get; set; }
     }
 
     private sealed class ModeDoc
@@ -295,4 +328,6 @@ public sealed record ReflexArenaMapGroup(
 
 public sealed record ReflexArenaMapOption(
     string Key,
-    string Label);
+    string Label,
+    string? WorkshopId,
+    bool BuiltIn);

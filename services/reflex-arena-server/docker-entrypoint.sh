@@ -18,11 +18,16 @@ write_optional_line() {
     fi
 }
 
+write_empty_string_line() {
+    key="$1"
+    printf '%s ""\n' "$key"
+}
+
 rewrite_default_cfg() {
     file="$1"
     tmp_file="${file}.tmp"
 
-    awk -v mode="$REFLEX_MODE" -v map="$REFLEX_START_MAP" -v mutators="$REFLEX_START_MUTATORS" '
+    awk -v mode="$REFLEX_MODE" -v map="$REFLEX_START_MAP" -v wmap="$REFLEX_START_WORKSHOP_MAP" -v mutators="$REFLEX_START_MUTATORS" '
         BEGIN {
             sawMode = 0
             sawMap = 0
@@ -35,12 +40,20 @@ rewrite_default_cfg() {
             next
         }
         /^sv_startmap[[:space:]]+/ {
-            print "sv_startmap " map
+            if (length(wmap) > 0) {
+                print "sv_startmap \"\""
+            } else {
+                print "sv_startmap " map
+            }
             sawMap = 1
             next
         }
         /^sv_startwmap[[:space:]]+/ {
-            print "sv_startwmap \"\""
+            if (length(wmap) > 0) {
+                print "sv_startwmap " wmap
+            } else {
+                print "sv_startwmap \"\""
+            }
             sawWorkshopMap = 1
             next
         }
@@ -64,10 +77,18 @@ rewrite_default_cfg() {
                 print "sv_startmode " mode
             }
             if (!sawMap) {
-                print "sv_startmap " map
+                if (length(wmap) > 0) {
+                    print "sv_startmap \"\""
+                } else {
+                    print "sv_startmap " map
+                }
             }
             if (!sawWorkshopMap) {
-                print "sv_startwmap \"\""
+                if (length(wmap) > 0) {
+                    print "sv_startwmap " wmap
+                } else {
+                    print "sv_startwmap \"\""
+                }
             }
             if (length(mutators) > 0 && !sawMutators) {
                 print "sv_startmutators " mutators
@@ -85,6 +106,7 @@ REFLEX_RUN_USER="${REFLEX_RUN_USER:-reflex}"
 REFLEX_HOSTNAME="${REFLEX_HOSTNAME:-Reflex Arena Docker Server}"
 REFLEX_MODE="${REFLEX_MODE:-1v1}"
 REFLEX_START_MAP="${REFLEX_START_MAP:-Fusion}"
+REFLEX_START_WORKSHOP_MAP="${REFLEX_START_WORKSHOP_MAP:-}"
 REFLEX_START_MUTATORS="${REFLEX_START_MUTATORS:-}"
 REFLEX_MAXCLIENTS="${REFLEX_MAXCLIENTS:-8}"
 REFLEX_STEAM="${REFLEX_STEAM:-1}"
@@ -104,7 +126,13 @@ CFG
 
 write_line sv_hostname "$REFLEX_HOSTNAME" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_startmode "$REFLEX_MODE" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
-write_line sv_startmap "$REFLEX_START_MAP" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
+if [ -n "$REFLEX_START_WORKSHOP_MAP" ]; then
+    write_empty_string_line sv_startmap >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
+    write_line sv_startwmap "$REFLEX_START_WORKSHOP_MAP" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
+else
+    write_line sv_startmap "$REFLEX_START_MAP" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
+    write_empty_string_line sv_startwmap >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
+fi
 write_line sv_maxclients "$REFLEX_MAXCLIENTS" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_steam "$REFLEX_STEAM" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
 write_line sv_allowedit "$REFLEX_ALLOW_EDIT" >> "${REFLEX_INSTALL_DIR}/dedicatedserver.cfg"
@@ -126,6 +154,9 @@ rewrite_default_cfg "${REFLEX_INSTALL_DIR}/dedicatedserver_default.cfg"
 
 printf '[reflex-arena] Mode: %s\n' "$REFLEX_MODE"
 printf '[reflex-arena] Start map: %s\n' "$REFLEX_START_MAP"
+if [ -n "$REFLEX_START_WORKSHOP_MAP" ]; then
+    printf '[reflex-arena] Workshop map ID: %s\n' "$REFLEX_START_WORKSHOP_MAP"
+fi
 printf '[reflex-arena] Game port: %s\n' "$REFLEX_GAME_PORT"
 printf '[reflex-arena] Mutators: %s\n' "${REFLEX_START_MUTATORS:-none}"
 
@@ -140,10 +171,13 @@ export USER="$REFLEX_RUN_USER"
 export LOGNAME="$REFLEX_RUN_USER"
 export LD_LIBRARY_PATH="${REFLEX_INSTALL_DIR}:${REFLEX_INSTALL_DIR}/linux64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 
-set -- \
-    +sv_startmode "$REFLEX_MODE" \
-    +sv_startmap "$REFLEX_START_MAP" \
-    "$@"
+set -- +sv_startmode "$REFLEX_MODE" "$@"
+
+if [ -n "$REFLEX_START_WORKSHOP_MAP" ]; then
+    set -- +sv_startwmap "$REFLEX_START_WORKSHOP_MAP" "$@"
+else
+    set -- +sv_startmap "$REFLEX_START_MAP" "$@"
+fi
 
 if [ -n "$REFLEX_START_MUTATORS" ]; then
     set -- +sv_startmutators "$REFLEX_START_MUTATORS" "$@"
