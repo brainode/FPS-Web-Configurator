@@ -263,13 +263,13 @@
                     <div>
                         <div class="mb-2">
                             <strong class="d-block mb-1">Clan Arena spawn loadout</strong>
-                            <span class="form-hint">Applies only when Match mode is <code>ca</code>. The panel writes <code>g_noclass_inventory</code> and <code>g_class_strong_ammo</code> into the custom CA runtime. Gunblade stays available. For weapons marked as infinite, the runtime keeps refilling their ammo during play.</span>
+                            <span class="form-hint">Applies only when Match mode is <code>ca</code>. The panel writes <code>g_noclass_inventory</code> and <code>g_class_strong_ammo</code> into the custom CA runtime. Gunblade stays available. For weapons marked as infinite, the runtime keeps refilling their ammo during play. Damage override currently works for Electrobolt and projectile weapons; heal-on-hit currently works for Rocket Launcher and is implemented in the official AngelScript layer, not by patching binaries.</span>
                         </div>
                         <label class="rule-toggle mb-3">
                             <input asp-for="Input.CustomRules.ClanArenaLoadoutEnabled" class="form-check-input" />
                             <span>
                                 <strong>Enable custom CA spawn loadout</strong>
-                                <small>Use the checked weapons and reserves below instead of the stock CA all-weapons setup.</small>
+                                <small>Use the checked weapons, ammo reserves and supported weapon-tuning fields below instead of the stock CA all-weapons setup.</small>
                             </span>
                         </label>
                         <span asp-validation-for="Input.CustomRules.ClanArenaLoadoutEnabled" class="text-danger small d-block mb-3"></span>
@@ -295,7 +295,7 @@
                                             </span>
                                         </label>
                                         <div class="row g-2">
-                                            <div class="col-7">
+                                            <div class="col-6">
                                                 <label asp-for="Input.CustomRules.ClanArenaLoadout[i].Ammo" class="form-label"></label>
                                                 <input asp-for="Input.CustomRules.ClanArenaLoadout[i].Ammo"
                                                        class="form-control"
@@ -303,7 +303,7 @@
                                                        max="9999" />
                                                 <span asp-validation-for="Input.CustomRules.ClanArenaLoadout[i].Ammo" class="text-danger small"></span>
                                             </div>
-                                            <div class="col-5">
+                                            <div class="col-6">
                                                 <label class="rule-toggle h-100">
                                                     <input asp-for="Input.CustomRules.ClanArenaLoadout[i].InfiniteAmmo" class="form-check-input" />
                                                     <span>
@@ -312,6 +312,32 @@
                                                     </span>
                                                 </label>
                                             </div>
+                                            @if (Model.SupportsDamageOverride(loadoutRule.Key))
+                                            {
+                                                <div class="col-12">
+                                                    <label asp-for="Input.CustomRules.ClanArenaLoadout[i].DamageOverride" class="form-label"></label>
+                                                    <input asp-for="Input.CustomRules.ClanArenaLoadout[i].DamageOverride"
+                                                           class="form-control"
+                                                           min="1"
+                                                           max="9999"
+                                                           placeholder="Leave empty to keep stock damage" />
+                                                    <div class="form-hint">For Electrobolt this is the direct hit damage. For projectile weapons the custom runtime rewrites projectile damage in the official AngelScript gametype.</div>
+                                                    <span asp-validation-for="Input.CustomRules.ClanArenaLoadout[i].DamageOverride" class="text-danger small"></span>
+                                                </div>
+                                            }
+                                            @if (Model.SupportsHealingMode(loadoutRule.Key))
+                                            {
+                                                <div class="col-12">
+                                                    <label class="rule-toggle h-100">
+                                                        <input asp-for="Input.CustomRules.ClanArenaLoadout[i].HealOnHit" class="form-check-input" />
+                                                        <span>
+                                                            <strong>Heal on hit</strong>
+                                                            <small>Rocket Launcher impacts turn into healing splash in the custom CA runtime. If damage override is empty, stock rocket damage is reused as heal amount.</small>
+                                                        </span>
+                                                    </label>
+                                                    <span asp-validation-for="Input.CustomRules.ClanArenaLoadout[i].HealOnHit" class="text-danger small"></span>
+                                                </div>
+                                            }
                                         </div>
                                     </div>
                                 </div>

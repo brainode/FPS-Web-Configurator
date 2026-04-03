@@ -14,13 +14,13 @@ public static class WarforkWeaponsCatalog
 
     public static IReadOnlyList<WarforkWeaponEntry> Weapons { get; } =
     [
-        new("machinegun",      "Machinegun",       "Rapid-fire hitscan starter weapon.",                 "mg", "bullets", 1,  75),
-        new("riotgun",         "Riotgun",          "Short-range spread weapon.",                         "rg", "shells",  2,  20),
-        new("grenadelauncher", "Grenade Launcher", "Bouncing arc projectile with area damage.",         "gl", "grens",   3,  20),
-        new("rocketlauncher",  "Rocket Launcher",  "Direct hit and area splash — primary movement tool.","rl", "rockets", 4,  40),
-        new("plasmagun",       "Plasmagun",        "Rapid-fire plasma bolts.",                           "pg", "plasma",  5, 125),
-        new("lasergun",        "Lasergun",         "Continuous beam for precise tracking shots.",        "lg", "lasers",  6, 180),
-        new("electrobolt",     "Electrobolt",      "Hitscan rail-style one-shot weapon.",               "eb", "bolts",   7,  15),
+        new("machinegun",      "Machinegun",       "Rapid-fire hitscan starter weapon.",                  "mg", "bullets", 1,  75, false, false),
+        new("riotgun",         "Riotgun",          "Short-range spread weapon.",                          "rg", "shells",  2,  20, false, false),
+        new("grenadelauncher", "Grenade Launcher", "Bouncing arc projectile with area damage.",          "gl", "grens",   3,  20, true,  false),
+        new("rocketlauncher",  "Rocket Launcher",  "Direct hit and area splash — primary movement tool.", "rl", "rockets", 4,  40, true,  true),
+        new("plasmagun",       "Plasmagun",        "Rapid-fire plasma bolts.",                            "pg", "plasma",  5, 125, true,  false),
+        new("lasergun",        "Lasergun",         "Continuous beam for precise tracking shots.",         "lg", "lasers",  6, 180, false, false),
+        new("electrobolt",     "Electrobolt",      "Hitscan rail-style one-shot weapon.",                "eb", "bolts",   7,  15, true,  false),
     ];
 
     public static IReadOnlyList<WarforkPickupEntry> Pickups { get; } =
@@ -39,6 +39,12 @@ public static class WarforkWeaponsCatalog
             ? null
             : Weapons.FirstOrDefault(w => string.Equals(w.Key, key, StringComparison.OrdinalIgnoreCase));
 
+    public static bool SupportsDamageOverride(string? key) =>
+        FindWeapon(key)?.SupportsDamageOverride ?? false;
+
+    public static bool SupportsHealingMode(string? key) =>
+        FindWeapon(key)?.SupportsHealingMode ?? false;
+
     public static List<WarforkClanArenaWeaponLoadout> NormalizeClanArenaLoadout(
         IEnumerable<WarforkClanArenaWeaponLoadout>? loadout)
     {
@@ -56,7 +62,11 @@ public static class WarforkWeaponsCatalog
                 {
                     WeaponKey = weapon.Key,
                     Ammo = configured.Ammo > 0 ? configured.Ammo : weapon.ClanArenaDefaultAmmo,
-                    InfiniteAmmo = configured.InfiniteAmmo
+                    InfiniteAmmo = configured.InfiniteAmmo,
+                    DamageOverride = weapon.SupportsDamageOverride && configured.DamageOverride is > 0
+                        ? configured.DamageOverride
+                        : null,
+                    HealOnHit = weapon.SupportsHealingMode && configured.HealOnHit
                 };
             })
             .ToList();
@@ -102,6 +112,24 @@ public static class WarforkWeaponsCatalog
 
         return string.Join(' ', ammo);
     }
+
+    public static string BuildDamageOverrideString(IEnumerable<WarforkClanArenaWeaponLoadout>? loadout)
+    {
+        return string.Join(
+            ' ',
+            NormalizeClanArenaLoadout(loadout)
+                .Where(rule => rule.DamageOverride is > 0)
+                .Select(rule => $"{rule.WeaponKey}={rule.DamageOverride!.Value}"));
+    }
+
+    public static string BuildHealingWeaponsString(IEnumerable<WarforkClanArenaWeaponLoadout>? loadout)
+    {
+        return string.Join(
+            ' ',
+            NormalizeClanArenaLoadout(loadout)
+                .Where(rule => rule.HealOnHit)
+                .Select(rule => rule.WeaponKey));
+    }
 }
 
 public sealed record WarforkWeaponEntry(
@@ -111,5 +139,7 @@ public sealed record WarforkWeaponEntry(
     string ClanArenaWeaponToken,
     string ClanArenaAmmoToken,
     int ClanArenaAmmoSlot,
-    int ClanArenaDefaultAmmo);
+    int ClanArenaDefaultAmmo,
+    bool SupportsDamageOverride,
+    bool SupportsHealingMode);
 public sealed record WarforkPickupEntry(string Key, string Label, string Description);

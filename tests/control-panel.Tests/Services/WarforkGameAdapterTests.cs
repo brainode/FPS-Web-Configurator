@@ -186,6 +186,8 @@ public sealed class WarforkGameAdapterTests
         Assert.Contains("WARFORK_CA_LOADOUT_INVENTORY", env.Keys);
         Assert.Contains("WARFORK_CA_STRONG_AMMO", env.Keys);
         Assert.Contains("WARFORK_CA_INFINITE_WEAPONS", env.Keys);
+        Assert.Contains("WARFORK_CA_DAMAGE_OVERRIDES", env.Keys);
+        Assert.Contains("WARFORK_CA_HEALING_WEAPONS", env.Keys);
     }
 
     [Fact]
@@ -237,13 +239,23 @@ public sealed class WarforkGameAdapterTests
                     {
                         WeaponKey = "riotgun",
                         Ammo = 12,
-                        InfiniteAmmo = false
+                        InfiniteAmmo = false,
+                        DamageOverride = 200
                     },
                     new WarforkClanArenaWeaponLoadout
                     {
                         WeaponKey = "electrobolt",
                         Ammo = 25,
-                        InfiniteAmmo = true
+                        InfiniteAmmo = true,
+                        DamageOverride = 99
+                    },
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "rocketlauncher",
+                        Ammo = 20,
+                        InfiniteAmmo = false,
+                        DamageOverride = 45,
+                        HealOnHit = true
                     }
                 ]
             }
@@ -254,8 +266,10 @@ public sealed class WarforkGameAdapterTests
         Assert.Equal("panelca", env["WARFORK_GAMETYPE"]);
         Assert.Equal("ca", env["WARFORK_BASE_GAMETYPE"]);
         Assert.Equal("1", env["WARFORK_CA_LOADOUT_ENABLED"]);
-        Assert.Equal("gb cells rg shells eb bolts", env["WARFORK_CA_LOADOUT_INVENTORY"]);
-        Assert.Equal("1 0 12 0 0 0 0 9999", env["WARFORK_CA_STRONG_AMMO"]);
+        Assert.Equal("gb cells rg shells rl rockets eb bolts", env["WARFORK_CA_LOADOUT_INVENTORY"]);
+        Assert.Equal("1 0 12 0 20 0 0 9999", env["WARFORK_CA_STRONG_AMMO"]);
         Assert.Equal("electrobolt", env["WARFORK_CA_INFINITE_WEAPONS"]);
+        Assert.Equal("rocketlauncher=45 electrobolt=99", env["WARFORK_CA_DAMAGE_OVERRIDES"]);
+        Assert.Equal("rocketlauncher", env["WARFORK_CA_HEALING_WEAPONS"]);
     }
 }

@@ -28,6 +28,10 @@ Cvar g_panelca_allow_armor( "g_panelca_allow_armor", "0", 0 );
 Cvar g_panelca_allow_powerups( "g_panelca_allow_powerups", "0", 0 );
 Cvar g_panelca_allowed_weapons( "g_panelca_allowed_weapons", "", 0 );
 Cvar g_panelca_infinite_weapons( "g_panelca_infinite_weapons", "", 0 );
+Cvar g_panelca_damage_overrides( "g_panelca_damage_overrides", "", 0 );
+Cvar g_panelca_healing_weapons( "g_panelca_healing_weapons", "", 0 );
+
+bool panelcaApplyingDamageCorrection = false;
 
 bool PANELCA_HasToken( const String &in list, const String &in token )
 {
@@ -115,6 +119,270 @@ void PANELCA_MaintainInfiniteAmmo()
         PANELCA_RefillInfiniteAmmo( client, WEAP_LASERGUN, AMMO_LASERS, "lasergun" );
         PANELCA_RefillInfiniteAmmo( client, WEAP_ELECTROBOLT, AMMO_BOLTS, "electrobolt" );
     }
+}
+
+String PANELCA_WeaponTagToKey( int weaponTag )
+{
+    switch ( weaponTag )
+    {
+    case WEAP_MACHINEGUN:
+        return "machinegun";
+    case WEAP_RIOTGUN:
+        return "riotgun";
+    case WEAP_GRENADELAUNCHER:
+        return "grenadelauncher";
+    case WEAP_ROCKETLAUNCHER:
+        return "rocketlauncher";
+    case WEAP_PLASMAGUN:
+        return "plasmagun";
+    case WEAP_LASERGUN:
+        return "lasergun";
+    case WEAP_ELECTROBOLT:
+        return "electrobolt";
+    default:
+        return "";
+    }
+}
+
+String PANELCA_ProjectileClassnameToWeaponKey( const String &in className )
+{
+    String lowered = className.tolower();
+
+    if ( lowered == "rocket" )
+        return "rocketlauncher";
+    if ( lowered == "grenade" )
+        return "grenadelauncher";
+    if ( lowered == "plasma" )
+        return "plasmagun";
+
+    return "";
+}
+
+int PANELCA_WeaponKeyToDamageMod( const String &in weaponKey )
+{
+    if ( weaponKey == "electrobolt" )
+        return MOD_ELECTROBOLT_S;
+    if ( weaponKey == "rocketlauncher" )
+        return MOD_ROCKET_S;
+    if ( weaponKey == "grenadelauncher" )
+        return MOD_GRENADE_S;
+    if ( weaponKey == "plasmagun" )
+        return MOD_PLASMA_S;
+
+    return 0;
+}
+
+int PANELCA_GetDamageOverrideValue( const String &in weaponKey )
+{
+    String wanted = weaponKey.tolower();
+
+    for ( int i = 0; ; i++ )
+    {
+        String token = g_panelca_damage_overrides.string.getToken( i );
+        if ( token.len() == 0 )
+            return 0;
+
+        uint sep = token.locate( "=", 0 );
+        if ( sep == token.length() )
+            continue;
+
+        if ( token.substr( 0, sep ).tolower() != wanted )
+            continue;
+
+        int value = token.substr( sep + 1 ).toInt();
+        return value > 0 ? value : 0;
+    }
+
+    return 0;
+}
+
+bool PANELCA_IsHealingWeapon( const String &in weaponKey )
+{
+    return PANELCA_HasToken( g_panelca_healing_weapons.string, weaponKey );
+}
+
+bool PANELCA_CanReceiveHealing( Entity @ent )
+{
+    return @ent != null
+        && ent.inuse
+        && @ent.client != null
+        && ent.team != TEAM_SPECTATOR
+        && !ent.isGhosting()
+        && ent.health > 0;
+}
+
+void PANELCA_HealEntity( Entity @ent, float amount )
+{
+    if ( !PANELCA_CanReceiveHealing( ent ) || amount <= 0.0f )
+        return;
+
+    float targetHealth = ent.health + amount;
+    if ( ent.maxHealth > 0 && targetHealth > ent.maxHealth )
+        targetHealth = ent.maxHealth;
+
+    if ( targetHealth > ent.health )
+        ent.health = targetHealth;
+}
+
+void PANELCA_HealAroundRocket( Entity @rocket, Entity @directTarget, float healAmount )
+{
+    float radius = rocket.projectileSplashRadius;
+    if ( healAmount <= 0.0f || radius <= 0.0f )
+        return;
+
+    for ( int i = 0; i < maxClients; i++ )
+    {
+        Client @client = @G_GetClient( i );
+        if ( @client == null )
+            continue;
+
+        Entity @target = @client.getEnt();
+        if ( !PANELCA_CanReceiveHealing( target ) )
+            continue;
+
+        if ( @directTarget != null && target.entNum == directTarget.entNum )
+            continue;
+
+        float distance = rocket.origin.distance( target.origin );
+        if ( distance > radius )
+            continue;
+
+        float scale = 1.0f - ( distance / radius );
+        if ( scale <= 0.0f )
+            continue;
+
+        PANELCA_HealEntity( target, healAmount * scale );
+    }
+}
+
+void PANELCA_HealingRocketTouch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags )
+{
+    if ( surfFlags & SURF_NOIMPACT )
+    {
+        ent.freeEntity();
+        return;
+    }
+
+    float healAmount = ent.projectileMaxDamage > 0 ? ent.projectileMaxDamage : 0.0f;
+
+    if ( PANELCA_CanReceiveHealing( other ) )
+        PANELCA_HealEntity( other, healAmount );
+
+    PANELCA_HealAroundRocket( ent, other, healAmount );
+    ent.explosionEffect( int( ent.projectileSplashRadius ) );
+    ent.freeEntity();
+}
+
+void PANELCA_ApplyProjectileOverride( Entity @projectile )
+{
+    String weaponKey = PANELCA_ProjectileClassnameToWeaponKey( projectile.classname );
+    if ( weaponKey.len() == 0 )
+        return;
+
+    int damageOverride = PANELCA_GetDamageOverrideValue( weaponKey );
+    if ( damageOverride > 0 )
+    {
+        int currentMaxDamage = projectile.projectileMaxDamage > 0 ? projectile.projectileMaxDamage : damageOverride;
+        int currentMinDamage = projectile.projectileMinDamage > 0 ? projectile.projectileMinDamage : 1;
+        int scaledMinDamage = currentMaxDamage > 0
+            ? int( float( damageOverride ) * float( currentMinDamage ) / float( currentMaxDamage ) )
+            : damageOverride;
+
+        if ( scaledMinDamage < 1 )
+            scaledMinDamage = 1;
+        if ( scaledMinDamage > damageOverride )
+            scaledMinDamage = damageOverride;
+
+        projectile.projectileMaxDamage = damageOverride;
+        projectile.projectileMinDamage = scaledMinDamage;
+    }
+
+    if ( weaponKey == "rocketlauncher" && PANELCA_IsHealingWeapon( weaponKey ) )
+    {
+        projectile.allowFunctionOverride = true;
+        projectile.touch = PANELCA_HealingRocketTouch;
+    }
+}
+
+void PANELCA_ApplyProjectileOverrides()
+{
+    if ( g_panelca_damage_overrides.string.len() == 0 && g_panelca_healing_weapons.string.len() == 0 )
+        return;
+
+    for ( int i = maxClients; i < numEntities; i++ )
+    {
+        Entity @projectile = @G_GetEntity( i );
+        if ( @projectile == null || !projectile.inuse )
+            continue;
+
+        PANELCA_ApplyProjectileOverride( projectile );
+    }
+}
+
+void PANELCA_AdjustIncomingDamage( Entity @target, Entity @attacker, float actualDamage, float desiredDamage, int damageMod )
+{
+    if ( @target == null || @attacker == null || actualDamage <= 0.0f || desiredDamage < 0.0f )
+        return;
+
+    float delta = actualDamage - desiredDamage;
+    if ( delta > 0.0f )
+    {
+        target.health += delta;
+        return;
+    }
+
+    if ( delta < 0.0f )
+    {
+        panelcaApplyingDamageCorrection = true;
+        target.sustainDamage( attacker, attacker, Vec3(), -delta, 0, 0, damageMod );
+        panelcaApplyingDamageCorrection = false;
+    }
+}
+
+void PANELCA_ApplyHealingRocketScoreEventFallback( Entity @target, float actualDamage )
+{
+    if ( !PANELCA_CanReceiveHealing( target ) || actualDamage <= 0.0f )
+        return;
+
+    float healAmount = PANELCA_GetDamageOverrideValue( "rocketlauncher" );
+    if ( healAmount <= 0.0f )
+        healAmount = actualDamage;
+
+    float desiredHealth = target.health + healAmount;
+    if ( target.maxHealth > 0 && desiredHealth > target.maxHealth )
+        desiredHealth = target.maxHealth;
+
+    float compensation = desiredHealth - ( target.health - actualDamage );
+    if ( compensation > 0.0f )
+        target.health += compensation;
+}
+
+void PANELCA_HandleDamageScoreEvent( const String &in args )
+{
+    if ( panelcaApplyingDamageCorrection )
+        return;
+
+    Entity @target = @G_GetEntity( args.getToken( 0 ).toInt() );
+    Entity @attacker = @G_GetEntity( args.getToken( 2 ).toInt() );
+    if ( @target == null || @attacker == null || @attacker.client == null )
+        return;
+
+    float actualDamage = args.getToken( 1 ).toFloat();
+    if ( actualDamage <= 0.0f )
+        return;
+
+    String weaponKey = PANELCA_WeaponTagToKey( attacker.client.weapon );
+    if ( weaponKey == "electrobolt" )
+    {
+        int desiredDamage = PANELCA_GetDamageOverrideValue( weaponKey );
+        if ( desiredDamage > 0 )
+            PANELCA_AdjustIncomingDamage( target, attacker, actualDamage, desiredDamage, PANELCA_WeaponKeyToDamageMod( weaponKey ) );
+
+        return;
+    }
+
+    if ( weaponKey == "rocketlauncher" && PANELCA_IsHealingWeapon( weaponKey ) )
+        PANELCA_ApplyHealingRocketScoreEventFallback( target, actualDamage );
 }
 
 const int CA_ROUNDSTATE_NONE = 0;
@@ -916,6 +1184,8 @@ void GT_ScoreEvent( Client @client, const String &score_event, const String &arg
 {
     if ( score_event == "dmg" )
     {
+        PANELCA_HandleDamageScoreEvent( args );
+
         if ( match.getState() == MATCH_STATE_PLAYTIME )
         {
 			GT_updateScore( client );
@@ -1073,6 +1343,7 @@ void GT_ThinkRules()
     }
 
     PANELCA_MaintainInfiniteAmmo();
+    PANELCA_ApplyProjectileOverrides();
 
     if ( match.getState() >= MATCH_STATE_POSTMATCH )
         return;
@@ -1165,7 +1436,7 @@ void GT_InitGametype()
                  + "set g_warmup_timelimit \"1\"\n"
                  + "set g_match_extendedtime \"0\"\n"
                  + "set g_allow_falldamage \"0\"\n"
-                 + "set g_allow_selfdamage \"0\"\n"
+                 + "set g_allow_selfdamage \"1\"\n"
                  + "set g_allow_teamdamage \"0\"\n"
                  + "set g_allow_stun \"0\"\n"
                  + "set g_teams_maxplayers \"8\"\n"
@@ -1183,6 +1454,8 @@ void GT_InitGametype()
                  + "set g_panelca_allow_powerups \"0\"\n"
                  + "set g_panelca_allowed_weapons \"\"\n"
                  + "set g_panelca_infinite_weapons \"\"\n"
+                 + "set g_panelca_damage_overrides \"\"\n"
+                 + "set g_panelca_healing_weapons \"\"\n"
                  + "\necho \"" + gametype.name + ".cfg executed\"\n";
 
         G_WriteFile( "configs/server/gametypes/" + gametype.name + ".cfg", config );

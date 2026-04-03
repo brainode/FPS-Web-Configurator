@@ -8,4 +8,6 @@ public sealed class WarforkClanArenaWeaponLoadout
     public string WeaponKey { get; set; } = string.Empty;
     public int Ammo { get; set; }
     public bool InfiniteAmmo { get; set; }
+    public int? DamageOverride { get; set; }
+    public bool HealOnHit { get; set; }
 }

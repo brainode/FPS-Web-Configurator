@@ -121,6 +121,8 @@ WARFORK_CA_LOADOUT_ENABLED="${WARFORK_CA_LOADOUT_ENABLED:-0}"
 WARFORK_CA_LOADOUT_INVENTORY="${WARFORK_CA_LOADOUT_INVENTORY:-}"
 WARFORK_CA_STRONG_AMMO="${WARFORK_CA_STRONG_AMMO:-}"
 WARFORK_CA_INFINITE_WEAPONS="${WARFORK_CA_INFINITE_WEAPONS:-}"
+WARFORK_CA_DAMAGE_OVERRIDES="${WARFORK_CA_DAMAGE_OVERRIDES:-}"
+WARFORK_CA_HEALING_WEAPONS="${WARFORK_CA_HEALING_WEAPONS:-}"
 WARFORK_DISABLE_HEALTH="${WARFORK_DISABLE_HEALTH:-0}"
 WARFORK_DISABLE_ARMOR="${WARFORK_DISABLE_ARMOR:-0}"
 WARFORK_DISABLE_POWERUPS="${WARFORK_DISABLE_POWERUPS:-0}"
@@ -210,6 +212,9 @@ cp "$DIST_DEDICATED_CFG" "${MANAGED_DOCKER_DIR}/original_dedicated_autoexec.cfg"
     write_set "g_instagib" "$WARFORK_INSTAGIB"
     write_set "g_instajump" "$WARFORK_INSTAJUMP"
     write_set "g_instashield" "$WARFORK_INSTASHIELD"
+    if [ "$WARFORK_GAMETYPE" = "panelca" ]; then
+        write_set "g_allow_selfdamage" "1"
+    fi
     write_set "sv_defaultmap" "$WARFORK_START_MAP"
     write_set "g_maplist" "$WARFORK_MAPLIST"
     write_set "g_maprotation" "$WARFORK_MAPROTATION"
@@ -244,6 +249,7 @@ cp "$DIST_GAMETYPE_CFG" "${MANAGED_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.cfg"
         fi
 
         if [ "$WARFORK_GAMETYPE" = "panelca" ]; then
+            write_set "g_allow_selfdamage" "1"
             write_set "g_panelca_allow_health" "$([ "$WARFORK_DISABLE_HEALTH" = "1" ] && printf '0' || printf '1')"
             write_set "g_panelca_allow_armor" "$([ "$WARFORK_DISABLE_ARMOR" = "1" ] && printf '0' || printf '1')"
             write_set "g_panelca_allow_powerups" "$([ "$WARFORK_DISABLE_POWERUPS" = "1" ] && printf '0' || printf '1')"
@@ -252,6 +258,12 @@ cp "$DIST_GAMETYPE_CFG" "${MANAGED_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.cfg"
             fi
             if [ -n "$WARFORK_CA_INFINITE_WEAPONS" ]; then
                 write_set "g_panelca_infinite_weapons" "$WARFORK_CA_INFINITE_WEAPONS"
+            fi
+            if [ -n "$WARFORK_CA_DAMAGE_OVERRIDES" ]; then
+                write_set "g_panelca_damage_overrides" "$WARFORK_CA_DAMAGE_OVERRIDES"
+            fi
+            if [ -n "$WARFORK_CA_HEALING_WEAPONS" ]; then
+                write_set "g_panelca_healing_weapons" "$WARFORK_CA_HEALING_WEAPONS"
             fi
         fi
 
@@ -269,6 +281,12 @@ if [ "$WARFORK_CUSTOM_RULES" = "1" ]; then
         printf 'Warfork CA loadout inventory: %s\n' "${WARFORK_CA_LOADOUT_INVENTORY:-default}"
         printf 'Warfork CA strong ammo: %s\n' "${WARFORK_CA_STRONG_AMMO:-default}"
         printf 'Warfork CA infinite weapons: %s\n' "${WARFORK_CA_INFINITE_WEAPONS:-none}"
+    fi
+    if [ -n "$WARFORK_CA_DAMAGE_OVERRIDES" ]; then
+        printf 'Warfork CA damage overrides: %s\n' "$WARFORK_CA_DAMAGE_OVERRIDES"
+    fi
+    if [ -n "$WARFORK_CA_HEALING_WEAPONS" ]; then
+        printf 'Warfork CA healing weapons: %s\n' "$WARFORK_CA_HEALING_WEAPONS"
     fi
 fi
 printf 'Warfork server port: %s/udp\n' "$WARFORK_SERVER_PORT"

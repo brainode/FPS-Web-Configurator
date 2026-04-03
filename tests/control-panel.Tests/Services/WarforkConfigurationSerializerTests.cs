@@ -161,13 +161,16 @@ public sealed class WarforkConfigurationSerializerTests
                     {
                         WeaponKey = "electrobolt",
                         Ammo = 99,
-                        InfiniteAmmo = true
+                        InfiniteAmmo = true,
+                        DamageOverride = 99
                     },
                     new WarforkClanArenaWeaponLoadout
                     {
                         WeaponKey = "rocketlauncher",
                         Ammo = 20,
-                        InfiniteAmmo = false
+                        InfiniteAmmo = false,
+                        DamageOverride = 45,
+                        HealOnHit = true
                     }
                 ]
             }
@@ -185,12 +188,16 @@ public sealed class WarforkConfigurationSerializerTests
                 Assert.Equal("rocketlauncher", rocketlauncher.WeaponKey);
                 Assert.Equal(20, rocketlauncher.Ammo);
                 Assert.False(rocketlauncher.InfiniteAmmo);
+                Assert.Equal(45, rocketlauncher.DamageOverride);
+                Assert.True(rocketlauncher.HealOnHit);
             },
             electrobolt =>
             {
                 Assert.Equal("electrobolt", electrobolt.WeaponKey);
                 Assert.Equal(99, electrobolt.Ammo);
                 Assert.True(electrobolt.InfiniteAmmo);
+                Assert.Equal(99, electrobolt.DamageOverride);
+                Assert.False(electrobolt.HealOnHit);
             });
     }
 }

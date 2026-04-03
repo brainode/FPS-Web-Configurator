@@ -74,6 +74,12 @@ public sealed class WarforkModel(
     public WarforkWeaponEntry? FindWeapon(string? weaponKey) =>
         WarforkWeaponsCatalog.FindWeapon(weaponKey);
 
+    public bool SupportsDamageOverride(string? weaponKey) =>
+        WarforkWeaponsCatalog.SupportsDamageOverride(weaponKey);
+
+    public bool SupportsHealingMode(string? weaponKey) =>
+        WarforkWeaponsCatalog.SupportsHealingMode(weaponKey);
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         await LoadAsync(cancellationToken);
@@ -275,6 +281,22 @@ public sealed class WarforkModel(
                     $"Input.CustomRules.ClanArenaLoadout[{i}].Ammo",
                     $"Ammo must be between 1 and {WarforkWeaponsCatalog.PracticalInfiniteAmmoReserve}.");
             }
+
+            if (rule.DamageOverride is not null &&
+                !WarforkWeaponsCatalog.SupportsDamageOverride(rule.Key))
+            {
+                ModelState.AddModelError(
+                    $"Input.CustomRules.ClanArenaLoadout[{i}].DamageOverride",
+                    "Damage override is currently supported only for Electrobolt and projectile weapons in custom Clan Arena.");
+            }
+
+            if (rule.HealOnHit &&
+                !WarforkWeaponsCatalog.SupportsHealingMode(rule.Key))
+            {
+                ModelState.AddModelError(
+                    $"Input.CustomRules.ClanArenaLoadout[{i}].HealOnHit",
+                    "Heal-on-hit is currently supported only for Rocket Launcher in custom Clan Arena.");
+            }
         }
     }
 
@@ -423,6 +445,16 @@ public sealed class WarforkModel(
                             rule.Ammo = weapon.ClanArenaDefaultAmmo;
                         }
 
+                        if (rule.DamageOverride <= 0 || !weapon.SupportsDamageOverride)
+                        {
+                            rule.DamageOverride = null;
+                        }
+
+                        if (!weapon.SupportsHealingMode)
+                        {
+                            rule.HealOnHit = false;
+                        }
+
                         return rule;
                     }
 
@@ -447,6 +479,10 @@ public sealed class WarforkModel(
                         WeaponKey = rule.Key,
                         Ammo = rule.Ammo,
                         InfiniteAmmo = rule.InfiniteAmmo,
+                        DamageOverride = WarforkWeaponsCatalog.SupportsDamageOverride(rule.Key) && rule.DamageOverride is > 0
+                            ? rule.DamageOverride
+                            : null,
+                        HealOnHit = WarforkWeaponsCatalog.SupportsHealingMode(rule.Key) && rule.HealOnHit,
                     })),
             DisableHealthItems = DisableHealthItems,
             DisableArmorItems = DisableArmorItems,
@@ -472,6 +508,10 @@ public sealed class WarforkModel(
                                 Enabled = weapon is not null,
                                 Ammo = rule.Ammo > 0 ? rule.Ammo : weapon?.ClanArenaDefaultAmmo ?? 1,
                                 InfiniteAmmo = rule.InfiniteAmmo,
+                                DamageOverride = weapon?.SupportsDamageOverride == true && rule.DamageOverride is > 0
+                                    ? rule.DamageOverride
+                                    : null,
+                                HealOnHit = weapon?.SupportsHealingMode == true && rule.HealOnHit,
                             };
                         })
                         .ToList(),
@@ -495,6 +535,13 @@ public sealed class WarforkModel(
 
         [Display(Name = "Use practical infinite ammo reserve")]
         public bool InfiniteAmmo { get; set; }
+
+        [Range(1, 9999)]
+        [Display(Name = "Damage override")]
+        public int? DamageOverride { get; set; }
+
+        [Display(Name = "Heal on hit")]
+        public bool HealOnHit { get; set; }
 
         public static ClanArenaLoadoutWeaponInputModel ForWeapon(WarforkWeaponEntry weapon) => new()
         {
