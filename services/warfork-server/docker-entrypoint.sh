@@ -215,6 +215,9 @@ cp "$DIST_DEDICATED_CFG" "${MANAGED_DOCKER_DIR}/original_dedicated_autoexec.cfg"
     write_set "g_maprotation" "$WARFORK_MAPROTATION"
     write_set "g_scorelimit" "$WARFORK_SCORELIMIT"
     write_set "g_timelimit" "$WARFORK_TIMELIMIT"
+    if [ -n "$WARFORK_GRAVITY" ]; then
+        write_set "g_gravity" "$WARFORK_GRAVITY"
+    fi
 } > "${MANAGED_DOCKER_DIR}/runtime-overrides.cfg"
 
 cp "$DIST_GAMETYPE_CFG" "${MANAGED_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.cfg"
@@ -252,9 +255,6 @@ cp "$DIST_GAMETYPE_CFG" "${MANAGED_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.cfg"
             fi
         fi
 
-        if [ -n "$WARFORK_GRAVITY" ]; then
-            write_set "g_gravity" "$WARFORK_GRAVITY"
-        fi
     fi
 } >> "${MANAGED_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.cfg"
 
