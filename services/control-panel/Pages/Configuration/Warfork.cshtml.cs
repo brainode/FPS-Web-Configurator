@@ -226,6 +226,26 @@ public sealed class WarforkModel(
         }
 
         if (Input.CustomRules.Enabled &&
+            Input.CustomRules.AllowedWeapons.Count > 0 &&
+            !string.Equals(Input.Gametype, "ca", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(
+                "Input.CustomRules.AllowedWeapons",
+                "Map weapon filtering currently works only in the custom Clan Arena runtime.");
+        }
+
+        if (Input.CustomRules.Enabled &&
+            (Input.CustomRules.DisableHealthItems ||
+             Input.CustomRules.DisableArmorItems ||
+             Input.CustomRules.DisablePowerups) &&
+            !string.Equals(Input.Gametype, "ca", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(
+                "Input.CustomRules.Enabled",
+                "Item-category spawn toggles currently work only in the custom Clan Arena runtime.");
+        }
+
+        if (Input.CustomRules.Enabled &&
             Input.CustomRules.ClanArenaLoadoutEnabled &&
             !Input.CustomRules.ClanArenaLoadout.Any(rule => rule.Enabled))
         {

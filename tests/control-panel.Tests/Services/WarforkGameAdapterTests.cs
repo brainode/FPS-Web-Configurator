@@ -172,6 +172,7 @@ public sealed class WarforkGameAdapterTests
         var env = _adapter.GetContainerEnv(null);
 
         Assert.Contains("WARFORK_GAMETYPE", env.Keys);
+        Assert.Contains("WARFORK_BASE_GAMETYPE", env.Keys);
         Assert.Contains("WARFORK_START_MAP", env.Keys);
         Assert.Contains("WARFORK_MAPLIST", env.Keys);
         Assert.Contains("WARFORK_INSTAGIB", env.Keys);
@@ -184,6 +185,7 @@ public sealed class WarforkGameAdapterTests
         Assert.Contains("WARFORK_CA_LOADOUT_ENABLED", env.Keys);
         Assert.Contains("WARFORK_CA_LOADOUT_INVENTORY", env.Keys);
         Assert.Contains("WARFORK_CA_STRONG_AMMO", env.Keys);
+        Assert.Contains("WARFORK_CA_INFINITE_WEAPONS", env.Keys);
     }
 
     [Fact]
@@ -249,8 +251,11 @@ public sealed class WarforkGameAdapterTests
 
         var env = _adapter.GetContainerEnv(json);
 
+        Assert.Equal("panelca", env["WARFORK_GAMETYPE"]);
+        Assert.Equal("ca", env["WARFORK_BASE_GAMETYPE"]);
         Assert.Equal("1", env["WARFORK_CA_LOADOUT_ENABLED"]);
         Assert.Equal("gb cells rg shells eb bolts", env["WARFORK_CA_LOADOUT_INVENTORY"]);
         Assert.Equal("1 0 12 0 0 0 0 9999", env["WARFORK_CA_STRONG_AMMO"]);
+        Assert.Equal("electrobolt", env["WARFORK_CA_INFINITE_WEAPONS"]);
     }
 }

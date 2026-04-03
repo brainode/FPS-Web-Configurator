@@ -246,7 +246,7 @@
                 <div class="panel-card-header">
                     <span class="section-kicker">Extended rules</span>
                     <h2 class="panel-title">Custom weapon &amp; item config</h2>
-                    <p class="panel-text mb-0">The first block drives the stock Clan Arena AngelScript through generated cvars, while the rest keeps handling pickup toggles, gravity and map-weapon restrictions from the cfg overlay.</p>
+                    <p class="panel-text mb-0">In Clan Arena, enabling custom rules switches the server to a CA-derived runtime generated from the official open-source Warfork scripts, so weapon loadouts, item categories and gravity all come from real supported config paths.</p>
                 </div>
                 <div class="panel-card-body vstack gap-4">
 
@@ -263,7 +263,7 @@
                     <div>
                         <div class="mb-2">
                             <strong class="d-block mb-1">Clan Arena spawn loadout</strong>
-                            <span class="form-hint">Applies only when Match mode is <code>ca</code>. The panel writes stock CA cvars <code>g_noclass_inventory</code> and <code>g_class_strong_ammo</code>. Gunblade stays available. "Infinite ammo" in this iteration is implemented as a very large reserve of <code>9999</code>.</span>
+                            <span class="form-hint">Applies only when Match mode is <code>ca</code>. The panel writes <code>g_noclass_inventory</code> and <code>g_class_strong_ammo</code> into the custom CA runtime. Gunblade stays available. For weapons marked as infinite, the runtime keeps refilling their ammo during play.</span>
                         </div>
                         <label class="rule-toggle mb-3">
                             <input asp-for="Input.CustomRules.ClanArenaLoadoutEnabled" class="form-check-input" />
@@ -307,8 +307,8 @@
                                                 <label class="rule-toggle h-100">
                                                     <input asp-for="Input.CustomRules.ClanArenaLoadout[i].InfiniteAmmo" class="form-check-input" />
                                                     <span>
-                                                        <strong>Large reserve</strong>
-                                                        <small>Writes 9999 ammo for a practical infinite reserve.</small>
+                                                        <strong>Infinite ammo</strong>
+                                                        <small>The custom CA runtime keeps refilling this weapon during the match.</small>
                                                     </span>
                                                 </label>
                                             </div>
@@ -321,8 +321,8 @@
 
                     <div>
                         <div class="mb-2">
-                            <strong class="d-block mb-1">Map weapon arena</strong>
-                            <span class="form-hint">Restrict which weapons spawn on the map. Leave all unchecked to disable weapon arena and let the gametype spawn its full default set.</span>
+                            <strong class="d-block mb-1">Map weapons</strong>
+                            <span class="form-hint">Applies only in custom Clan Arena. When at least one weapon is checked, the custom runtime enables map weapon/ammo spawns and removes every unchecked weapon family from the map.</span>
                         </div>
                         <div class="rule-toggle-list">
                             @foreach (var weapon in Model.WeaponOptions)
@@ -340,12 +340,13 @@
                                 </label>
                             }
                         </div>
+                        <span asp-validation-for="Input.CustomRules.AllowedWeapons" class="text-danger small d-block mt-2"></span>
                     </div>
 
                     <div>
                         <div class="mb-2">
                             <strong class="d-block mb-1">Item spawns</strong>
-                            <span class="form-hint">Disable entire item categories. Written as <code>g_pickup_*</code> cvars into the gametype override.</span>
+                            <span class="form-hint">Applies only in custom Clan Arena. These toggles control which item categories the CA-derived runtime allows to spawn on the map.</span>
                         </div>
                         <div class="rule-toggle-list">
                             @foreach (var pickup in Model.PickupOptions)
@@ -383,7 +384,7 @@
                         <div class="col-sm-4">
                             <label asp-for="Input.CustomRules.Gravity" class="form-label"></label>
                             <input asp-for="Input.CustomRules.Gravity" class="form-control" min="50" max="3000" placeholder="800 (default)" />
-                            <div class="form-hint">Default is 800. Lower values give floatier movement. Written as <code>sv_gravity</code>.</div>
+                            <div class="form-hint">Default is 800. Lower values give floatier movement. Written as <code>g_gravity</code>.</div>
                             <span asp-validation-for="Input.CustomRules.Gravity" class="text-danger small"></span>
                         </div>
                     </div>

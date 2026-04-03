@@ -7,6 +7,8 @@ namespace control_panel.Services;
 
 public sealed class WarforkGameAdapter : IGameAdapter
 {
+    private const string CustomClanArenaGametype = "panelca";
+
     public string GameKey => "warfork";
     public string DisplayName => "Warfork";
     public string ConfigurationPagePath => "/Configuration/Warfork";
@@ -60,9 +62,11 @@ public sealed class WarforkGameAdapter : IGameAdapter
     public IReadOnlyDictionary<string, string> GetContainerEnv(string? jsonSettings)
     {
         var s = WarforkConfigurationSerializer.Deserialize(jsonSettings);
+        var runtimeGametype = UsesCustomClanArenaRuntime(s) ? CustomClanArenaGametype : s.Gametype;
         var env = new Dictionary<string, string>
         {
-            ["WARFORK_GAMETYPE"] = s.Gametype,
+            ["WARFORK_GAMETYPE"] = runtimeGametype,
+            ["WARFORK_BASE_GAMETYPE"] = s.Gametype,
             ["WARFORK_START_MAP"] = s.StartMap,
             ["WARFORK_MAPLIST"] = string.Join(" ", s.MapList),
             ["WARFORK_INSTAGIB"] = s.Instagib ? "1" : "0",
@@ -75,6 +79,7 @@ public sealed class WarforkGameAdapter : IGameAdapter
             ["WARFORK_CA_LOADOUT_ENABLED"] = "0",
             ["WARFORK_CA_LOADOUT_INVENTORY"] = string.Empty,
             ["WARFORK_CA_STRONG_AMMO"] = string.Empty,
+            ["WARFORK_CA_INFINITE_WEAPONS"] = string.Empty,
         };
 
         if (s.CustomRules is { Enabled: true } rules)
@@ -93,6 +98,12 @@ public sealed class WarforkGameAdapter : IGameAdapter
                 env["WARFORK_CA_LOADOUT_ENABLED"] = "1";
                 env["WARFORK_CA_LOADOUT_INVENTORY"] = WarforkWeaponsCatalog.BuildClanArenaInventory(rules.ClanArenaLoadout);
                 env["WARFORK_CA_STRONG_AMMO"] = WarforkWeaponsCatalog.BuildClanArenaStrongAmmoString(rules.ClanArenaLoadout);
+                env["WARFORK_CA_INFINITE_WEAPONS"] = string.Join(
+                    " ",
+                    rules.ClanArenaLoadout
+                        .Where(rule => rule.InfiniteAmmo)
+                        .Select(rule => rule.WeaponKey)
+                        .Distinct(StringComparer.OrdinalIgnoreCase));
             }
         }
 
@@ -100,4 +111,8 @@ public sealed class WarforkGameAdapter : IGameAdapter
     }
 
     public string CreateDefaultJson() => WarforkSeedConfiguration.CreateDefaultJson();
+
+    private static bool UsesCustomClanArenaRuntime(WarforkServerSettings settings) =>
+        settings.CustomRules is { Enabled: true } &&
+        string.Equals(settings.Gametype, "ca", StringComparison.OrdinalIgnoreCase);
 }

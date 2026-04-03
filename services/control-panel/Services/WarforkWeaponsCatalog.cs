@@ -5,9 +5,9 @@ using control_panel.Models;
 
 namespace control_panel.Services;
 
-// Weapon arena in Warfork is driven by the g_weaponarena and g_weaponarena_items
-// server cvars, which the stock gametype scripts read at match start.
-// Gunblade (melee) is always available and therefore not listed here.
+// Gunblade is always available and therefore not listed here.
+// The custom Clan Arena runtime (`panelca`) consumes these keys to build both
+// the spawn loadout and the optional map weapon filtering rules.
 public static class WarforkWeaponsCatalog
 {
     public const int PracticalInfiniteAmmoReserve = 9999;
@@ -25,9 +25,9 @@ public static class WarforkWeaponsCatalog
 
     public static IReadOnlyList<WarforkPickupEntry> Pickups { get; } =
     [
-        new("health",   "Health items",  "g_pickup_health",   "Health packs and mega-health that spawn on the map."),
-        new("armor",    "Armor items",   "g_pickup_armor",    "All armor shards, combat armor and body armor."),
-        new("powerups", "Powerups",      "g_pickup_powerups", "Quad Damage, Warshell and similar powerup items."),
+        new("health",   "Health items",  "Health packs and mega-health that spawn on the map."),
+        new("armor",    "Armor items",   "All armor shards, combat armor and body armor."),
+        new("powerups", "Powerups",      "Quad Damage, Warshell and similar powerup items."),
     ];
 
     public static bool IsValidWeapon(string? key) =>
@@ -112,4 +112,4 @@ public sealed record WarforkWeaponEntry(
     string ClanArenaAmmoToken,
     int ClanArenaAmmoSlot,
     int ClanArenaDefaultAmmo);
-public sealed record WarforkPickupEntry(string Key, string Label, string CVar, string Description);
+public sealed record WarforkPickupEntry(string Key, string Label, string Description);
