@@ -73,6 +73,25 @@ public sealed class ReflexArenaModel(
         await LoadAsync(cancellationToken);
     }
 
+    // Quick actions — use whatever is already saved in DB, no form data needed
+    public async Task<IActionResult> OnPostQuickStartAsync(CancellationToken cancellationToken)
+    {
+        var configuration = await configurationStore.GetOrCreateAsync(GameKey, cancellationToken);
+        var env = _gameAdapter.GetContainerEnv(configuration.JsonContent);
+        var result = await dockerAgentClient.StartAsync(GameKey, env, cancellationToken);
+        StoreResult(result);
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostQuickRestartAsync(CancellationToken cancellationToken)
+    {
+        var configuration = await configurationStore.GetOrCreateAsync(GameKey, cancellationToken);
+        var env = _gameAdapter.GetContainerEnv(configuration.JsonContent);
+        var result = await dockerAgentClient.RestartAsync(GameKey, env, cancellationToken);
+        StoreResult(result);
+        return RedirectToPage();
+    }
+
     public async Task<IActionResult> OnPostStopAsync(CancellationToken cancellationToken)
     {
         var result = await dockerAgentClient.StopAsync(GameKey, cancellationToken);
@@ -80,6 +99,7 @@ public sealed class ReflexArenaModel(
         return RedirectToPage();
     }
 
+    // Save actions — validate and persist form data, then optionally act
     public Task<IActionResult> OnPostSaveAsync(CancellationToken cancellationToken) =>
         HandleSaveAsync(serverAction: ServerAction.None, cancellationToken);
 
@@ -127,6 +147,9 @@ public sealed class ReflexArenaModel(
                 {
                     Input.ApplyRuleset(rules);
                     NormalizeInput();
+                    // Clear ModelState so asp-for tag helpers render the updated model values,
+                    // not the stale POST values that were bound from the form before Load.
+                    ModelState.Clear();
                 }
             }
         }
@@ -144,8 +167,15 @@ public sealed class ReflexArenaModel(
         NormalizeInput();
         var effectiveSettings = Input.ToSettings(existingSettings);
 
-        ModelState.ClearValidationState(nameof(Input));
-        TryValidateModel(Input, nameof(Input));
+        // Clear dictionary binding errors — empty number fields in weapon/pickup rows
+        // produce spurious int? parse failures that would block submission.
+        foreach (var key in ModelState.Keys
+            .Where(k => k.StartsWith("Input.Weapon") || k.StartsWith("Input.Pickup"))
+            .ToList())
+        {
+            ModelState.Remove(key);
+        }
+
         ValidateInput();
 
         if (string.IsNullOrWhiteSpace(effectiveSettings.RefPassword))

@@ -38,6 +38,20 @@
             </div>
             <div class="panel-card-body">
                 <div class="d-flex flex-wrap gap-2">
+                    @if (Model.CanStart)
+                    {
+                        <form method="post" asp-page-handler="QuickStart">
+                            <button type="submit" class="btn btn-primary btn-lg">Start server</button>
+                        </form>
+                    }
+
+                    @if (Model.CanRestart)
+                    {
+                        <form method="post" asp-page-handler="QuickRestart">
+                            <button type="submit" class="btn btn-outline-warning" data-confirm-restart="true">Restart server</button>
+                        </form>
+                    }
+
                     @if (Model.CanStop)
                     {
                         <form method="post" asp-page-handler="Stop">
@@ -48,11 +62,6 @@
                     @if (Model.ShowUnavailableActions)
                     {
                         <button type="button" class="btn btn-outline-secondary" disabled>Server actions unavailable</button>
-                    }
-
-                    @if (!Model.CanStop && !Model.ShowUnavailableActions)
-                    {
-                        <span class="text-secondary small align-self-center">Use the buttons below to start or restart with current settings.</span>
                     }
                 </div>
             </div>
