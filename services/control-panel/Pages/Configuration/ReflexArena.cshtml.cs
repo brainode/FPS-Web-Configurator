@@ -421,7 +421,7 @@ public sealed class ReflexArenaModel(
                 Hostname = Hostname,
                 Mode = Mode,
                 StartMap = StartMap,
-                Mutators = SelectedMutators,
+                Mutators = CustomRulesEnabled ? [] : SelectedMutators,
                 MaxClients = MaxClients,
                 SteamEnabled = SteamEnabled,
                 Country = Country.Trim().ToUpperInvariant(),
