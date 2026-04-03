@@ -24,6 +24,8 @@ public sealed class WarforkModel(
 
     public IReadOnlyList<WarforkGametypeOption> GametypeOptions => WarforkModuleCatalog.Gametypes;
     public IReadOnlyList<WarforkMapGroup> MapGroups => WarforkModuleCatalog.MapGroups;
+    public IReadOnlyList<WarforkWeaponEntry> WeaponOptions => WarforkWeaponsCatalog.Weapons;
+    public IReadOnlyList<WarforkPickupEntry> PickupOptions => WarforkWeaponsCatalog.Pickups;
     public IReadOnlyList<WarforkMapOption> StartMapOptions => Input.SelectedMaps
         .Where(WarforkModuleCatalog.IsValidMap)
         .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -65,6 +67,9 @@ public sealed class WarforkModel(
 
     public bool IsMapSelected(string mapKey) =>
         Input.SelectedMaps.Contains(mapKey, StringComparer.OrdinalIgnoreCase);
+
+    public bool IsWeaponAllowed(string weaponKey) =>
+        Input.CustomRules.AllowedWeapons.Contains(weaponKey, StringComparer.OrdinalIgnoreCase);
 
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
@@ -259,6 +264,8 @@ public sealed class WarforkModel(
         [Display(Name = "Clear saved join password")]
         public bool ClearServerPassword { get; set; }
 
+        public CustomRulesInputModel CustomRules { get; set; } = new();
+
         public WarforkServerSettings ToSettings(WarforkServerSettings? existingSettings = null)
         {
             return new WarforkServerSettings
@@ -278,7 +285,8 @@ public sealed class WarforkModel(
                     ? string.Empty
                     : string.IsNullOrWhiteSpace(ServerPassword)
                         ? existingSettings?.ServerPassword ?? string.Empty
-                        : ServerPassword
+                        : ServerPassword,
+                CustomRules = CustomRules.ToModel(),
             };
         }
 
@@ -296,8 +304,56 @@ public sealed class WarforkModel(
                 Timelimit = settings.Timelimit,
                 RconPassword = settings.RconPassword,
                 ServerPassword = string.Empty,
-                ClearServerPassword = false
+                ClearServerPassword = false,
+                CustomRules = CustomRulesInputModel.FromModel(settings.CustomRules),
             };
         }
+    }
+
+    public sealed class CustomRulesInputModel
+    {
+        [Display(Name = "Enable custom rules")]
+        public bool Enabled { get; set; }
+
+        public List<string> AllowedWeapons { get; set; } = [];
+
+        [Display(Name = "Disable health items")]
+        public bool DisableHealthItems { get; set; }
+
+        [Display(Name = "Disable armor items")]
+        public bool DisableArmorItems { get; set; }
+
+        [Display(Name = "Disable powerups")]
+        public bool DisablePowerups { get; set; }
+
+        [Range(50, 3000)]
+        [Display(Name = "Gravity override")]
+        public int? Gravity { get; set; }
+
+        public WarforkCustomRules ToModel() => new()
+        {
+            Enabled = Enabled,
+            AllowedWeapons = AllowedWeapons
+                .Where(WarforkWeaponsCatalog.IsValidWeapon)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            DisableHealthItems = DisableHealthItems,
+            DisableArmorItems = DisableArmorItems,
+            DisablePowerups = DisablePowerups,
+            Gravity = Gravity is > 0 ? Gravity : null,
+        };
+
+        public static CustomRulesInputModel FromModel(WarforkCustomRules? rules) =>
+            rules is null
+                ? new()
+                : new()
+                {
+                    Enabled = rules.Enabled,
+                    AllowedWeapons = rules.AllowedWeapons.ToList(),
+                    DisableHealthItems = rules.DisableHealthItems,
+                    DisableArmorItems = rules.DisableArmorItems,
+                    DisablePowerups = rules.DisablePowerups,
+                    Gravity = rules.Gravity,
+                };
     }
 }

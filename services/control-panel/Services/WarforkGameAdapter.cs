@@ -19,6 +19,11 @@ public sealed class WarforkGameAdapter : IGameAdapter
         if (s.Instagib) flags.Add("Instagib");
         if (s.Instajump) flags.Add("Instajump");
         if (s.Instashield) flags.Add("Instashield");
+        if (s.CustomRules is { Enabled: true })
+        {
+            var weaponCount = s.CustomRules.AllowedWeapons.Count;
+            flags.Add(weaponCount > 0 ? $"Custom rules ({weaponCount} weapons)" : "Custom rules");
+        }
 
         return new GameSummary(
             ModeName: WarforkModuleCatalog.GetGametypeLabel(s.Gametype),
@@ -37,7 +42,7 @@ public sealed class WarforkGameAdapter : IGameAdapter
     public IReadOnlyDictionary<string, string> GetContainerEnv(string? jsonSettings)
     {
         var s = WarforkConfigurationSerializer.Deserialize(jsonSettings);
-        return new Dictionary<string, string>
+        var env = new Dictionary<string, string>
         {
             ["WARFORK_GAMETYPE"] = s.Gametype,
             ["WARFORK_START_MAP"] = s.StartMap,
@@ -48,8 +53,20 @@ public sealed class WarforkGameAdapter : IGameAdapter
             ["WARFORK_SCORELIMIT"] = s.Scorelimit.ToString(),
             ["WARFORK_TIMELIMIT"] = s.Timelimit.ToString(),
             ["WARFORK_RCON_PASSWORD"] = s.RconPassword,
-            ["WARFORK_PASSWORD"] = s.ServerPassword
+            ["WARFORK_PASSWORD"] = s.ServerPassword,
         };
+
+        if (s.CustomRules is { Enabled: true } rules)
+        {
+            env["WARFORK_CUSTOM_RULES"] = "1";
+            env["WARFORK_ALLOWED_WEAPONS"] = string.Join(" ", rules.AllowedWeapons);
+            env["WARFORK_DISABLE_HEALTH"] = rules.DisableHealthItems ? "1" : "0";
+            env["WARFORK_DISABLE_ARMOR"] = rules.DisableArmorItems ? "1" : "0";
+            env["WARFORK_DISABLE_POWERUPS"] = rules.DisablePowerups ? "1" : "0";
+            env["WARFORK_GRAVITY"] = rules.Gravity?.ToString() ?? "";
+        }
+
+        return env;
     }
 
     public string CreateDefaultJson() => WarforkSeedConfiguration.CreateDefaultJson();

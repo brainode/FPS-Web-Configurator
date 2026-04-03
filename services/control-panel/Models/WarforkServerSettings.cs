@@ -15,4 +15,5 @@ public sealed class WarforkServerSettings
     public int Timelimit { get; set; }
     public string RconPassword { get; set; } = string.Empty;
     public string ServerPassword { get; set; } = string.Empty;
+    public WarforkCustomRules? CustomRules { get; set; }
 }

@@ -2,6 +2,7 @@
 // Copyright (C) 2025 Zeus <admin@brainode.com>
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using control_panel.Models;
 
 namespace control_panel.Services;
@@ -10,7 +11,8 @@ public static class WarforkConfigurationSerializer
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
-        WriteIndented = true
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
     public static WarforkServerSettings Deserialize(string? json)
@@ -40,6 +42,27 @@ public static class WarforkConfigurationSerializer
             settings.Timelimit = GameConfigJsonReader.ReadInt(root, "g_timelimit", settings.Timelimit);
             settings.RconPassword = GameConfigJsonReader.ReadString(root, "rcon_password", string.Empty);
             settings.ServerPassword = GameConfigJsonReader.ReadString(root, "password", string.Empty);
+
+            if (root.TryGetProperty("custom_rules", out var rulesEl) &&
+                rulesEl.ValueKind == JsonValueKind.Object)
+            {
+                var doc = JsonSerializer.Deserialize<CustomRulesDoc>(rulesEl.GetRawText(), SerializerOptions);
+                if (doc is not null)
+                {
+                    settings.CustomRules = new WarforkCustomRules
+                    {
+                        Enabled = doc.Enabled,
+                        AllowedWeapons = doc.AllowedWeapons
+                            .Where(WarforkWeaponsCatalog.IsValidWeapon)
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .ToList(),
+                        DisableHealthItems = doc.DisableHealth,
+                        DisableArmorItems = doc.DisableArmor,
+                        DisablePowerups = doc.DisablePowerups,
+                        Gravity = doc.Gravity is > 0 ? doc.Gravity : null,
+                    };
+                }
+            }
         }
         catch (JsonException)
         {
@@ -56,20 +79,65 @@ public static class WarforkConfigurationSerializer
         var normalizedMaps = WarforkModuleCatalog.NormalizeMapSelection(settings.MapList, settings.Gametype);
         var resolvedStartMap = WarforkModuleCatalog.ResolveStartMap(settings.StartMap, normalizedMaps, settings.Gametype);
 
-        var payload = new Dictionary<string, string>
+        CustomRulesDoc? rulesDoc = null;
+        if (settings.CustomRules is { } rules)
         {
-            ["sv_defaultmap"] = resolvedStartMap,
-            ["g_maplist"] = string.Join(' ', normalizedMaps),
-            ["g_gametype"] = settings.Gametype,
-            ["g_instagib"] = settings.Instagib ? "1" : "0",
-            ["g_instajump"] = settings.Instajump ? "1" : "0",
-            ["g_instashield"] = settings.Instashield ? "1" : "0",
-            ["g_scorelimit"] = settings.Scorelimit.ToString(),
-            ["g_timelimit"] = settings.Timelimit.ToString(),
-            ["rcon_password"] = settings.RconPassword ?? string.Empty,
-            ["password"] = settings.ServerPassword ?? string.Empty
+            rulesDoc = new CustomRulesDoc
+            {
+                Enabled = rules.Enabled,
+                AllowedWeapons = rules.AllowedWeapons
+                    .Where(WarforkWeaponsCatalog.IsValidWeapon)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+                DisableHealth = rules.DisableHealthItems,
+                DisableArmor = rules.DisableArmorItems,
+                DisablePowerups = rules.DisablePowerups,
+                Gravity = rules.Gravity,
+            };
+        }
+
+        var doc = new SettingsDoc
+        {
+            SvDefaultmap = resolvedStartMap,
+            GMaplist = string.Join(' ', normalizedMaps),
+            GGametype = settings.Gametype,
+            GInstagib = settings.Instagib ? "1" : "0",
+            GInstajump = settings.Instajump ? "1" : "0",
+            GInstashield = settings.Instashield ? "1" : "0",
+            GScorelimit = settings.Scorelimit.ToString(),
+            GTimelimit = settings.Timelimit.ToString(),
+            RconPassword = settings.RconPassword ?? string.Empty,
+            Password = settings.ServerPassword ?? string.Empty,
+            CustomRules = rulesDoc,
         };
 
-        return JsonSerializer.Serialize(payload, SerializerOptions);
+        return JsonSerializer.Serialize(doc, SerializerOptions);
+    }
+
+    // ── Private DTOs ──────────────────────────────────────────────────────────
+
+    private sealed class SettingsDoc
+    {
+        [JsonPropertyName("sv_defaultmap")] public string SvDefaultmap { get; set; } = "";
+        [JsonPropertyName("g_maplist")] public string GMaplist { get; set; } = "";
+        [JsonPropertyName("g_gametype")] public string GGametype { get; set; } = "";
+        [JsonPropertyName("g_instagib")] public string GInstagib { get; set; } = "0";
+        [JsonPropertyName("g_instajump")] public string GInstajump { get; set; } = "0";
+        [JsonPropertyName("g_instashield")] public string GInstashield { get; set; } = "0";
+        [JsonPropertyName("g_scorelimit")] public string GScorelimit { get; set; } = "0";
+        [JsonPropertyName("g_timelimit")] public string GTimelimit { get; set; } = "0";
+        [JsonPropertyName("rcon_password")] public string RconPassword { get; set; } = "";
+        [JsonPropertyName("password")] public string Password { get; set; } = "";
+        [JsonPropertyName("custom_rules")] public CustomRulesDoc? CustomRules { get; set; }
+    }
+
+    private sealed class CustomRulesDoc
+    {
+        [JsonPropertyName("enabled")] public bool Enabled { get; set; }
+        [JsonPropertyName("allowed_weapons")] public List<string> AllowedWeapons { get; set; } = [];
+        [JsonPropertyName("disable_health")] public bool DisableHealth { get; set; }
+        [JsonPropertyName("disable_armor")] public bool DisableArmor { get; set; }
+        [JsonPropertyName("disable_powerups")] public bool DisablePowerups { get; set; }
+        [JsonPropertyName("gravity")] public int? Gravity { get; set; }
     }
 }
