@@ -73,24 +73,6 @@ public sealed class ReflexArenaModel(
         await LoadAsync(cancellationToken);
     }
 
-    public async Task<IActionResult> OnPostStartAsync(CancellationToken cancellationToken)
-    {
-        var configuration = await configurationStore.GetOrCreateAsync(GameKey, cancellationToken);
-        var env = _gameAdapter.GetContainerEnv(configuration.JsonContent);
-        var result = await dockerAgentClient.StartAsync(GameKey, env, cancellationToken);
-        StoreResult(result);
-        return RedirectToPage();
-    }
-
-    public async Task<IActionResult> OnPostRestartAsync(CancellationToken cancellationToken)
-    {
-        var configuration = await configurationStore.GetOrCreateAsync(GameKey, cancellationToken);
-        var env = _gameAdapter.GetContainerEnv(configuration.JsonContent);
-        var result = await dockerAgentClient.RestartAsync(GameKey, env, cancellationToken);
-        StoreResult(result);
-        return RedirectToPage();
-    }
-
     public async Task<IActionResult> OnPostStopAsync(CancellationToken cancellationToken)
     {
         var result = await dockerAgentClient.StopAsync(GameKey, cancellationToken);
@@ -99,10 +81,13 @@ public sealed class ReflexArenaModel(
     }
 
     public Task<IActionResult> OnPostSaveAsync(CancellationToken cancellationToken) =>
-        HandleSaveAsync(restartServer: false, cancellationToken);
+        HandleSaveAsync(serverAction: ServerAction.None, cancellationToken);
+
+    public Task<IActionResult> OnPostStartAsync(CancellationToken cancellationToken) =>
+        HandleSaveAsync(serverAction: ServerAction.Start, cancellationToken);
 
     public Task<IActionResult> OnPostApplyAsync(CancellationToken cancellationToken) =>
-        HandleSaveAsync(restartServer: true, cancellationToken);
+        HandleSaveAsync(serverAction: ServerAction.Restart, cancellationToken);
 
     public async Task<IActionResult> OnPostSaveRulesetAsync(CancellationToken cancellationToken)
     {
@@ -149,7 +134,9 @@ public sealed class ReflexArenaModel(
         return Page();
     }
 
-    private async Task<IActionResult> HandleSaveAsync(bool restartServer, CancellationToken cancellationToken)
+    private enum ServerAction { None, Start, Restart }
+
+    private async Task<IActionResult> HandleSaveAsync(ServerAction serverAction, CancellationToken cancellationToken)
     {
         var existingConfiguration = await configurationStore.GetOrCreateAsync(GameKey, cancellationToken);
         var existingSettings = ReflexArenaConfigurationSerializer.Deserialize(existingConfiguration.JsonContent);
@@ -175,19 +162,23 @@ public sealed class ReflexArenaModel(
         var jsonContent = ReflexArenaConfigurationSerializer.Serialize(effectiveSettings);
         await configurationStore.SaveAsync(GameKey, jsonContent, User.Identity?.Name ?? "unknown", cancellationToken);
 
-        if (!restartServer)
+        if (serverAction == ServerAction.None)
         {
             SuccessMessage = "Reflex Arena settings saved.";
             return RedirectToPage();
         }
 
         var env = _gameAdapter.GetContainerEnv(jsonContent);
-        var result = await dockerAgentClient.RestartAsync(GameKey, env, cancellationToken);
+        var result = serverAction == ServerAction.Start
+            ? await dockerAgentClient.StartAsync(GameKey, env, cancellationToken)
+            : await dockerAgentClient.RestartAsync(GameKey, env, cancellationToken);
 
         if (result.Success)
-            SuccessMessage = "Settings saved and restart requested.";
+            SuccessMessage = serverAction == ServerAction.Start
+                ? "Settings saved and server started."
+                : "Settings saved and restart requested.";
         else
-            ErrorMessage = $"Settings saved, but restart failed: {result.Message}";
+            ErrorMessage = $"Settings saved, but {(serverAction == ServerAction.Start ? "start" : "restart")} failed: {result.Message}";
 
         return RedirectToPage();
     }

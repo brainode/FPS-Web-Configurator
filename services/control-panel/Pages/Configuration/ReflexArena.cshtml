@@ -38,20 +38,6 @@
             </div>
             <div class="panel-card-body">
                 <div class="d-flex flex-wrap gap-2">
-                    @if (Model.CanStart)
-                    {
-                        <form method="post" asp-page-handler="Start">
-                            <button type="submit" class="btn btn-primary btn-lg">Start server</button>
-                        </form>
-                    }
-
-                    @if (Model.CanRestart)
-                    {
-                        <form method="post" asp-page-handler="Restart">
-                            <button type="submit" class="btn btn-outline-warning" data-confirm-restart="true">Restart server</button>
-                        </form>
-                    }
-
                     @if (Model.CanStop)
                     {
                         <form method="post" asp-page-handler="Stop">
@@ -62,6 +48,11 @@
                     @if (Model.ShowUnavailableActions)
                     {
                         <button type="button" class="btn btn-outline-secondary" disabled>Server actions unavailable</button>
+                    }
+
+                    @if (!Model.CanStop && !Model.ShowUnavailableActions)
+                    {
+                        <span class="text-secondary small align-self-center">Use the buttons below to start or restart with current settings.</span>
                     }
                 </div>
             </div>
@@ -461,8 +452,19 @@
                         <p class="mb-0 text-secondary">Saving updates the Reflex Arena module config in SQLite. Save and restart also asks docker-agent to recreate the container with the new env vars.</p>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
-                        <button type="submit" asp-page-handler="Save" class="btn btn-primary btn-lg">Save settings</button>
-                        <button type="submit" asp-page-handler="Apply" class="btn btn-outline-warning btn-lg" data-confirm-restart="true">Save and restart</button>
+                        <button type="submit" asp-page-handler="Save" class="btn btn-outline-light btn-lg">Save settings</button>
+                        @if (Model.CanStart)
+                        {
+                            <button type="submit" asp-page-handler="Start" class="btn btn-primary btn-lg">Save and start</button>
+                        }
+                        @if (Model.CanRestart)
+                        {
+                            <button type="submit" asp-page-handler="Apply" class="btn btn-primary btn-lg" data-confirm-restart="true">Save and restart</button>
+                        }
+                        @if (!Model.CanStart && !Model.CanRestart)
+                        {
+                            <button type="submit" asp-page-handler="Apply" class="btn btn-outline-warning btn-lg" data-confirm-restart="true">Save and restart</button>
+                        }
                     </div>
                 </div>
             </div>
