@@ -11,6 +11,7 @@ public sealed class ControlPanelDbContext(DbContextOptions<ControlPanelDbContext
     public DbSet<PanelUser> Users => Set<PanelUser>();
     public DbSet<GameConfiguration> GameConfigurations => Set<GameConfiguration>();
     public DbSet<PanelSetting> PanelSettings => Set<PanelSetting>();
+    public DbSet<SavedRuleset> SavedRulesets => Set<SavedRuleset>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +40,15 @@ public sealed class ControlPanelDbContext(DbContextOptions<ControlPanelDbContext
             entity.Property(x => x.SettingKey).HasMaxLength(64).IsRequired();
             entity.Property(x => x.JsonContent).IsRequired();
             entity.Property(x => x.UpdatedBy).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<SavedRuleset>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.GameKey, x.Name }).IsUnique();
+            entity.Property(x => x.GameKey).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.JsonContent).IsRequired();
         });
     }
 }

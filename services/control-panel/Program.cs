@@ -61,6 +61,7 @@ builder.Services.AddSingleton<PanelGameModuleCatalog>();
 
 builder.Services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
 builder.Services.AddScoped<IConfigurationStore, SqliteConfigurationStore>();
+builder.Services.AddScoped<IRulesetLibrary, SqliteRulesetLibrary>();
 builder.Services.AddScoped<IModuleVisibilityService, SqliteModuleVisibilityService>();
 builder.Services.AddScoped<DatabaseInitializer>();
 

@@ -2,6 +2,7 @@
 // Copyright (C) 2025 Zeus <admin@brainode.com>
 
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using control_panel.Models;
 using control_panel.Services;
@@ -15,7 +16,8 @@ namespace control_panel.Pages.Configuration;
 public sealed class ReflexArenaModel(
     IConfigurationStore configurationStore,
     IDockerAgentClient dockerAgentClient,
-    IEnumerable<IGameAdapter> gameAdapters) : PageModel
+    IEnumerable<IGameAdapter> gameAdapters,
+    IRulesetLibrary rulesetLibrary) : PageModel
 {
     private static readonly Regex CountryCodePattern = new("^[A-Za-z]{2,3}$", RegexOptions.Compiled);
     private static readonly Regex RulesetNamePattern = new("^[a-z][a-z0-9_]*$", RegexOptions.Compiled);
@@ -30,6 +32,7 @@ public sealed class ReflexArenaModel(
     public IReadOnlyList<ReflexArenaMapGroup> MapGroups => ReflexArenaModuleCatalog.MapGroups;
     public IReadOnlyList<ReflexArenaWeaponEntry> WeaponEntries => ReflexArenaWeaponsCatalog.Weapons;
     public IReadOnlyList<ReflexArenaPickupEntry> PickupEntries => ReflexArenaWeaponsCatalog.Pickups;
+    public IReadOnlyList<SavedRuleset> SavedRulesets { get; private set; } = [];
 
     public ServerStatusSnapshot Status { get; private set; } = ServerStatusSnapshot.NotConfigured("reflex-arena");
     public string StatusToneClass => Status.StatusToneClass;
@@ -101,6 +104,51 @@ public sealed class ReflexArenaModel(
     public Task<IActionResult> OnPostApplyAsync(CancellationToken cancellationToken) =>
         HandleSaveAsync(restartServer: true, cancellationToken);
 
+    public async Task<IActionResult> OnPostSaveRulesetAsync(CancellationToken cancellationToken)
+    {
+        NormalizeInput();
+
+        if (!Input.CustomRulesEnabled)
+        {
+            await LoadAsync(cancellationToken, preserveInput: true);
+            return Page();
+        }
+
+        var existingConfig = await configurationStore.GetOrCreateAsync(GameKey, cancellationToken);
+        var existingSettings = ReflexArenaConfigurationSerializer.Deserialize(existingConfig.JsonContent);
+        var settings = Input.ToSettings(existingSettings);
+
+        if (settings.CustomRules is { } rules)
+        {
+            var json = JsonSerializer.Serialize(rules, new JsonSerializerOptions { WriteIndented = true });
+            await rulesetLibrary.SaveAsync(GameKey, Input.CustomRulesetName, json, cancellationToken);
+            SuccessMessage = $"Ruleset '{Input.CustomRulesetName}' saved to library.";
+        }
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostLoadRulesetAsync(CancellationToken cancellationToken)
+    {
+        await LoadAsync(cancellationToken, preserveInput: true);
+
+        if (!string.IsNullOrWhiteSpace(Input.LoadRulesetName))
+        {
+            var saved = await rulesetLibrary.GetByNameAsync(GameKey, Input.LoadRulesetName, cancellationToken);
+            if (saved is not null)
+            {
+                var rules = JsonSerializer.Deserialize<ReflexArenaCustomRules>(saved.JsonContent);
+                if (rules is not null)
+                {
+                    Input.ApplyRuleset(rules);
+                    NormalizeInput();
+                }
+            }
+        }
+
+        return Page();
+    }
+
     private async Task<IActionResult> HandleSaveAsync(bool restartServer, CancellationToken cancellationToken)
     {
         var existingConfiguration = await configurationStore.GetOrCreateAsync(GameKey, cancellationToken);
@@ -137,13 +185,9 @@ public sealed class ReflexArenaModel(
         var result = await dockerAgentClient.RestartAsync(GameKey, env, cancellationToken);
 
         if (result.Success)
-        {
             SuccessMessage = "Settings saved and restart requested.";
-        }
         else
-        {
             ErrorMessage = $"Settings saved, but restart failed: {result.Message}";
-        }
 
         return RedirectToPage();
     }
@@ -158,11 +202,10 @@ public sealed class ReflexArenaModel(
         CurrentServerPassword = currentSettings.ServerPassword;
 
         if (!preserveInput)
-        {
             Input = InputModel.FromSettings(currentSettings);
-        }
 
         NormalizeInput();
+        SavedRulesets = await rulesetLibrary.GetAllAsync(GameKey, cancellationToken);
 
         UpdatedLabel = PanelHelpers.FormatUpdatedLabel(configuration.UpdatedUtc);
         UpdatedByLabel = PanelHelpers.FormatUpdatedByLabel(configuration.UpdatedBy);
@@ -181,20 +224,13 @@ public sealed class ReflexArenaModel(
     private void ValidateInput()
     {
         if (!ReflexArenaModuleCatalog.IsValidMode(Input.Mode))
-        {
             ModelState.AddModelError("Input.Mode", "Choose a supported Reflex Arena mode.");
-        }
 
         if (!ReflexArenaModuleCatalog.IsValidMap(Input.StartMap))
-        {
             ModelState.AddModelError("Input.StartMap", "Choose a valid Reflex Arena map.");
-        }
         else if (!ReflexArenaModuleCatalog.IsSupportedMapForMode(Input.StartMap, Input.Mode))
-        {
-            ModelState.AddModelError(
-                "Input.StartMap",
+            ModelState.AddModelError("Input.StartMap",
                 $"Map '{ReflexArenaModuleCatalog.GetMapLabel(Input.StartMap)}' does not support the selected mode.");
-        }
 
         var invalidMutators = Input.SelectedMutators
             .Where(mutator => !ReflexArenaModuleCatalog.IsValidMutator(mutator))
@@ -202,21 +238,15 @@ public sealed class ReflexArenaModel(
             .ToArray();
 
         if (invalidMutators.Length > 0)
-        {
-            ModelState.AddModelError("Input.SelectedMutators", $"Unsupported mutators: {string.Join(", ", invalidMutators)}");
-        }
+            ModelState.AddModelError("Input.SelectedMutators",
+                $"Unsupported mutators: {string.Join(", ", invalidMutators)}");
 
-        if (!string.IsNullOrWhiteSpace(Input.Country) &&
-            !CountryCodePattern.IsMatch(Input.Country))
-        {
+        if (!string.IsNullOrWhiteSpace(Input.Country) && !CountryCodePattern.IsMatch(Input.Country))
             ModelState.AddModelError("Input.Country", "Country must be a 2-3 letter code such as RU or USA.");
-        }
 
         if (Input.CustomRulesEnabled && !RulesetNamePattern.IsMatch(Input.CustomRulesetName))
-        {
             ModelState.AddModelError("Input.CustomRulesetName",
                 "Ruleset name must start with a letter and contain only lowercase letters, digits, and underscores.");
-        }
     }
 
     private void StoreResult(AgentActionResult result)
@@ -273,13 +303,14 @@ public sealed class ReflexArenaModel(
         [Display(Name = "Referee / rcon password")]
         public string? RefPassword { get; set; }
 
-        // Custom ruleset
-        [Display(Name = "Enable custom ruleset")]
+        [Display(Name = "Use custom rules")]
         public bool CustomRulesEnabled { get; set; }
 
         [StringLength(64)]
         [Display(Name = "Ruleset name")]
         public string CustomRulesetName { get; set; } = "custom";
+
+        public string? LoadRulesetName { get; set; }
 
         public Dictionary<string, bool> WeaponEnabled { get; set; } = [];
         public Dictionary<string, int?> WeaponDirectDamage { get; set; } = [];
@@ -291,6 +322,43 @@ public sealed class ReflexArenaModel(
         [Range(-3000, 3000)]
         [Display(Name = "Gravity override")]
         public int? GravityOverride { get; set; }
+
+        public void ApplyRuleset(ReflexArenaCustomRules rules)
+        {
+            CustomRulesEnabled = true;
+            CustomRulesetName = string.IsNullOrWhiteSpace(rules.RulesetName) ? "custom" : rules.RulesetName;
+            GravityOverride = rules.Gravity;
+
+            WeaponEnabled.Clear();
+            WeaponDirectDamage.Clear();
+            WeaponSplashDamage.Clear();
+            WeaponInfiniteAmmo.Clear();
+            WeaponMaxAmmo.Clear();
+            PickupEnabled.Clear();
+
+            var weaponDict = rules.Weapons.ToDictionary(w => w.Key, StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in ReflexArenaWeaponsCatalog.Weapons)
+            {
+                if (weaponDict.TryGetValue(entry.Key, out var wo))
+                {
+                    WeaponEnabled[entry.Key] = wo.WeaponEnabled;
+                    if (wo.DirectDamage.HasValue) WeaponDirectDamage[entry.Key] = wo.DirectDamage;
+                    if (wo.SplashDamage.HasValue) WeaponSplashDamage[entry.Key] = wo.SplashDamage;
+                    WeaponInfiniteAmmo[entry.Key] = wo.InfiniteAmmo;
+                    if (wo.MaxAmmo.HasValue) WeaponMaxAmmo[entry.Key] = wo.MaxAmmo;
+                }
+                else
+                {
+                    WeaponEnabled[entry.Key] = true;
+                }
+            }
+
+            var pickupDict = rules.Pickups.ToDictionary(p => p.Key, StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in ReflexArenaWeaponsCatalog.Pickups)
+            {
+                PickupEnabled[entry.Key] = pickupDict.TryGetValue(entry.Key, out var po) ? po.Enabled : true;
+            }
+        }
 
         public ReflexArenaServerSettings ToSettings(ReflexArenaServerSettings? existingSettings = null)
         {
@@ -369,7 +437,6 @@ public sealed class ReflexArenaModel(
                 GravityOverride = settings.CustomRules?.Gravity,
             };
 
-            // Build flat dicts from saved weapon/pickup overrides
             var savedWeapons = settings.CustomRules?.Weapons
                 .ToDictionary(w => w.Key, StringComparer.OrdinalIgnoreCase)
                 ?? new Dictionary<string, ReflexArenaWeaponOverride>(StringComparer.OrdinalIgnoreCase);

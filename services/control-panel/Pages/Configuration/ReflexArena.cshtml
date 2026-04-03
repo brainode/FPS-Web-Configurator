@@ -125,28 +125,11 @@
                 <div class="col-12 col-xl-4">
                     <div class="panel-card h-100">
                         <div class="panel-card-header">
-                            <span class="section-kicker">Rules</span>
-                            <h2 class="panel-title">Mutators &amp; matchmaking hints</h2>
-                            <p class="panel-text mb-0">Mutators come from the stock dedicated server feature set, not from ad-hoc cfg patches.</p>
+                            <span class="section-kicker">Match</span>
+                            <h2 class="panel-title">Match settings</h2>
+                            <p class="panel-text mb-0">Server visibility, time rules and region metadata for browser listings.</p>
                         </div>
                         <div class="panel-card-body vstack gap-3">
-                            <div class="rule-toggle-list">
-                                @foreach (var mutator in Model.MutatorOptions)
-                                {
-                                    <label class="rule-toggle">
-                                        <input class="form-check-input"
-                                               type="checkbox"
-                                               name="Input.SelectedMutators"
-                                               value="@mutator.Key"
-                                               @(Model.IsMutatorSelected(mutator.Key) ? "checked" : null) />
-                                        <span>
-                                            <strong>@mutator.Label</strong>
-                                            <small>@mutator.Description</small>
-                                        </span>
-                                    </label>
-                                }
-                            </div>
-                            <span asp-validation-for="Input.SelectedMutators" class="text-danger small"></span>
                             <div>
                                 <label class="rule-toggle">
                                     <input asp-for="Input.SteamEnabled" class="form-check-input" />
@@ -258,33 +241,77 @@
                 <div class="col-12">
                     <div class="panel-card">
                         <div class="panel-card-header">
-                            <span class="section-kicker">Advanced</span>
-                            <h2 class="panel-title">Custom ruleset</h2>
-                            <p class="panel-text mb-0">Override weapon damage, ammo, pickups and gravity without touching any config files. The panel generates <code>game/ruleset_&lt;name&gt;.cfg</code> automatically on each container start.</p>
+                            <span class="section-kicker">Game</span>
+                            <h2 class="panel-title">Game Rules</h2>
+                            <p class="panel-text mb-0">Use built-in mutators for quick preset changes, or switch to custom rules to fully control weapon damage, ammo, pickups and gravity. The two modes are mutually exclusive.</p>
                         </div>
                         <div class="panel-card-body vstack gap-4">
+
                             <div>
                                 <label class="rule-toggle">
                                     <input asp-for="Input.CustomRulesEnabled"
                                            class="form-check-input"
-                                           id="customRulesMaster" />
+                                           id="gameRulesMaster" />
                                     <span>
-                                        <strong>Enable custom ruleset</strong>
-                                        <small>When disabled the server uses its default game constants.</small>
+                                        <strong>Use custom rules</strong>
+                                        <small>Override weapon constants and pickups. When off, standard mutators apply instead.</small>
                                     </span>
                                 </label>
                             </div>
 
-                            <div id="customRulesBody" @(Model.Input.CustomRulesEnabled ? "" : "hidden")>
-                                <div class="mb-4">
-                                    <label asp-for="Input.CustomRulesetName" class="form-label"></label>
-                                    <input asp-for="Input.CustomRulesetName"
-                                           class="form-control"
-                                           style="max-width:280px"
-                                           placeholder="custom"
-                                           maxlength="64" />
-                                    <div class="form-hint">Lowercase letters, digits, underscores. Becomes <code>ruleset_&lt;name&gt;.cfg</code>.</div>
-                                    <span asp-validation-for="Input.CustomRulesetName" class="text-danger small"></span>
+                            @* Mutators section: visible when custom rules are OFF *@
+                            <div id="mutatorsSection" @(!Model.Input.CustomRulesEnabled ? "" : "hidden")>
+                                <div class="rule-toggle-list">
+                                    @foreach (var mutator in Model.MutatorOptions)
+                                    {
+                                        <label class="rule-toggle">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   name="Input.SelectedMutators"
+                                                   value="@mutator.Key"
+                                                   @(Model.IsMutatorSelected(mutator.Key) ? "checked" : null) />
+                                            <span>
+                                                <strong>@mutator.Label</strong>
+                                                <small>@mutator.Description</small>
+                                            </span>
+                                        </label>
+                                    }
+                                </div>
+                                <span asp-validation-for="Input.SelectedMutators" class="text-danger small"></span>
+                            </div>
+
+                            @* Custom rules section: visible when custom rules are ON *@
+                            <div id="customRulesSection" @(Model.Input.CustomRulesEnabled ? "" : "hidden")>
+
+                                @if (Model.SavedRulesets.Count > 0)
+                                {
+                                    <div class="d-flex align-items-end gap-2 mb-4">
+                                        <div>
+                                            <label class="form-label mb-1">Load from library</label>
+                                            <select name="Input.LoadRulesetName" class="form-select" style="min-width:220px">
+                                                <option value="">— choose saved ruleset —</option>
+                                                @foreach (var rs in Model.SavedRulesets)
+                                                {
+                                                    <option value="@rs.Name">@rs.Name</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <button type="submit" asp-page-handler="LoadRuleset" class="btn btn-outline-secondary">Load</button>
+                                    </div>
+                                }
+
+                                <div class="d-flex align-items-end gap-2 mb-4" style="flex-wrap:wrap">
+                                    <div>
+                                        <label asp-for="Input.CustomRulesetName" class="form-label"></label>
+                                        <input asp-for="Input.CustomRulesetName"
+                                               class="form-control"
+                                               style="max-width:280px"
+                                               placeholder="custom"
+                                               maxlength="64" />
+                                        <div class="form-hint">Becomes <code>ruleset_&lt;name&gt;.cfg</code>. Lowercase letters, digits, underscores.</div>
+                                        <span asp-validation-for="Input.CustomRulesetName" class="text-danger small"></span>
+                                    </div>
+                                    <button type="submit" asp-page-handler="SaveRuleset" class="btn btn-outline-secondary mb-auto mt-4">Save to library</button>
                                 </div>
 
                                 <h3 class="mb-3" style="font-size:.9rem;text-transform:uppercase;letter-spacing:.05em;color:var(--bs-secondary-color,#6c757d)">Weapons</h3>
@@ -302,7 +329,6 @@
                                         <tbody>
                                             @foreach (var weapon in Model.WeaponEntries)
                                             {
-                                                var enabledKey = $"Input.WeaponEnabled[{weapon.Key}]";
                                                 var isEnabled = Model.Input.WeaponEnabled.GetValueOrDefault(weapon.Key, true);
                                                 var isInfinite = Model.Input.WeaponInfiniteAmmo.GetValueOrDefault(weapon.Key, false);
                                                 <tr data-weapon-row="@weapon.Key" class="@(isEnabled ? "" : "opacity-50")">
@@ -314,6 +340,7 @@
                                                                    class="form-check-input weapon-toggle"
                                                                    data-weapon="@weapon.Key"
                                                                    @(isEnabled ? "checked" : null) />
+                                                            <input type="hidden" name="Input.WeaponEnabled[@weapon.Key]" value="false" />
                                                             @weapon.Label
                                                         </label>
                                                         <div class="form-hint mb-0">@weapon.Description</div>
@@ -357,6 +384,7 @@
                                                                    data-weapon="@weapon.Key"
                                                                    @(isInfinite ? "checked" : null)
                                                                    @(isEnabled ? null : "disabled") />
+                                                            <input type="hidden" name="Input.WeaponInfiniteAmmo[@weapon.Key]" value="false" />
                                                         }
                                                         else
                                                         {
@@ -398,6 +426,7 @@
                                                    value="true"
                                                    class="form-check-input"
                                                    @(isPickupEnabled ? "checked" : null) />
+                                            <input type="hidden" name="Input.PickupEnabled[@pickup.Key]" value="false" />
                                             <span>
                                                 <strong>@pickup.Label</strong>
                                                 <small>@pickup.Description</small>
@@ -419,6 +448,7 @@
                                     <span asp-validation-for="Input.GravityOverride" class="text-danger small"></span>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -444,16 +474,18 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         (function () {
-            // Master toggle: show/hide the whole ruleset body
-            var master = document.getElementById('customRulesMaster');
-            var body   = document.getElementById('customRulesBody');
-            if (master && body) {
+            var master = document.getElementById('gameRulesMaster');
+            var mutatorsSection = document.getElementById('mutatorsSection');
+            var customSection   = document.getElementById('customRulesSection');
+
+            if (master && mutatorsSection && customSection) {
                 master.addEventListener('change', function () {
-                    body.hidden = !master.checked;
+                    mutatorsSection.hidden = master.checked;
+                    customSection.hidden   = !master.checked;
                 });
             }
 
-            // Weapon row: disable all inputs in the row when weapon is unchecked
+            // Weapon row: disable all inputs when weapon is unchecked
             document.querySelectorAll('.weapon-toggle').forEach(function (cb) {
                 cb.addEventListener('change', function () {
                     var key = cb.dataset.weapon;
@@ -464,15 +496,14 @@
                     row.querySelectorAll('.weapon-input, .infinite-ammo-toggle').forEach(function (el) {
                         el.disabled = !enabled;
                     });
-                    // Keep ammo input state in sync with infinite toggle
                     if (enabled) syncInfiniteAmmo(key);
                 });
             });
 
-            // Infinite ammo toggle: disable the max-ammo number input
+            // Infinite ammo: disable max-ammo input when checked
             function syncInfiniteAmmo(key) {
-                var inf     = document.querySelector('.infinite-ammo-toggle[data-weapon="' + key + '"]');
-                var ammoIn  = document.querySelector('.ammo-input[data-weapon="' + key + '"]');
+                var inf    = document.querySelector('.infinite-ammo-toggle[data-weapon="' + key + '"]');
+                var ammoIn = document.querySelector('.ammo-input[data-weapon="' + key + '"]');
                 if (inf && ammoIn) ammoIn.disabled = inf.checked;
             }
 

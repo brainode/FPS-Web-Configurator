@@ -22,6 +22,7 @@ public sealed class DatabaseInitializer(
     {
         await dbContext.Database.EnsureCreatedAsync(cancellationToken);
         await EnsurePanelSettingsTableAsync(cancellationToken);
+        await EnsureSavedRulesetsTableAsync(cancellationToken);
 
         var options = authOptions.Value;
         var existingAdmin = await dbContext.Users
@@ -47,6 +48,25 @@ public sealed class DatabaseInitializer(
         }
 
         await moduleVisibilityService.GetAsync(cancellationToken);
+    }
+
+    private async Task EnsureSavedRulesetsTableAsync(CancellationToken cancellationToken)
+    {
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS SavedRulesets (
+                Id INTEGER NOT NULL CONSTRAINT PK_SavedRulesets PRIMARY KEY AUTOINCREMENT,
+                GameKey TEXT NOT NULL,
+                Name TEXT NOT NULL,
+                JsonContent TEXT NOT NULL,
+                CreatedUtc TEXT NOT NULL,
+                UpdatedUtc TEXT NOT NULL
+            );
+            """, cancellationToken);
+
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            CREATE UNIQUE INDEX IF NOT EXISTS IX_SavedRulesets_GameKey_Name
+            ON SavedRulesets (GameKey, Name);
+            """, cancellationToken);
     }
 
     private async Task EnsurePanelSettingsTableAsync(CancellationToken cancellationToken)
