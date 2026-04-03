@@ -195,6 +195,14 @@ if [ -n "$REFLEX_START_MUTATORS" ]; then
     set -- +sv_startmutators "$REFLEX_START_MUTATORS" "$@"
 fi
 
+# Ruleset must be applied after the initial map load, not before it.
+# Appending +sv_ruleset and +map_restart causes the engine to set the
+# ruleset once the startup map is running and then immediately restart
+# the map so the ruleset gconsts take effect for the first real round.
+if [ -n "$REFLEX_RULESET_NAME" ]; then
+    set -- "$@" +sv_ruleset "$REFLEX_RULESET_NAME" +map_restart
+fi
+
 if [ "$(id -u)" = "0" ]; then
     exec gosu "$REFLEX_RUN_USER" env \
         HOME="$REFLEX_DATA_DIR" \
