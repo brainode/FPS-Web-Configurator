@@ -181,6 +181,9 @@ public sealed class WarforkGameAdapterTests
         Assert.Contains("WARFORK_TIMELIMIT", env.Keys);
         Assert.Contains("WARFORK_RCON_PASSWORD", env.Keys);
         Assert.Contains("WARFORK_PASSWORD", env.Keys);
+        Assert.Contains("WARFORK_CA_LOADOUT_ENABLED", env.Keys);
+        Assert.Contains("WARFORK_CA_LOADOUT_INVENTORY", env.Keys);
+        Assert.Contains("WARFORK_CA_STRONG_AMMO", env.Keys);
     }
 
     [Fact]
@@ -212,5 +215,42 @@ public sealed class WarforkGameAdapterTests
         var env = _adapter.GetContainerEnv(json);
 
         Assert.Equal("return pressure", env["WARFORK_MAPLIST"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_WithClanArenaLoadout_MapsInventoryAndAmmo()
+    {
+        var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "riotgun",
+                        Ammo = 12,
+                        InfiniteAmmo = false
+                    },
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "electrobolt",
+                        Ammo = 25,
+                        InfiniteAmmo = true
+                    }
+                ]
+            }
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("1", env["WARFORK_CA_LOADOUT_ENABLED"]);
+        Assert.Equal("gb cells rg shells eb bolts", env["WARFORK_CA_LOADOUT_INVENTORY"]);
+        Assert.Equal("1 0 12 0 0 0 0 9999", env["WARFORK_CA_STRONG_AMMO"]);
     }
 }

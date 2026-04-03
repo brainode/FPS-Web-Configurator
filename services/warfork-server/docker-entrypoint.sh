@@ -115,6 +115,9 @@ WARFORK_RCON_PASSWORD="${WARFORK_RCON_PASSWORD:-}"
 WARFORK_OPERATOR_PASSWORD="${WARFORK_OPERATOR_PASSWORD:-}"
 WARFORK_CUSTOM_RULES="${WARFORK_CUSTOM_RULES:-0}"
 WARFORK_ALLOWED_WEAPONS="${WARFORK_ALLOWED_WEAPONS:-}"
+WARFORK_CA_LOADOUT_ENABLED="${WARFORK_CA_LOADOUT_ENABLED:-0}"
+WARFORK_CA_LOADOUT_INVENTORY="${WARFORK_CA_LOADOUT_INVENTORY:-}"
+WARFORK_CA_STRONG_AMMO="${WARFORK_CA_STRONG_AMMO:-}"
 WARFORK_DISABLE_HEALTH="${WARFORK_DISABLE_HEALTH:-0}"
 WARFORK_DISABLE_ARMOR="${WARFORK_DISABLE_ARMOR:-0}"
 WARFORK_DISABLE_POWERUPS="${WARFORK_DISABLE_POWERUPS:-0}"
@@ -220,6 +223,16 @@ cp "$DIST_GAMETYPE_CFG" "${MANAGED_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.cfg"
             write_set "g_weaponarena" "1"
             write_set "g_weaponarena_items" "$WARFORK_ALLOWED_WEAPONS"
         fi
+        # Stock Clan Arena reads these two cvars on respawn, which lets the
+        # panel build a precise spawn loadout without shipping a custom gametype.
+        if [ "$WARFORK_GAMETYPE" = "ca" ] && [ "$WARFORK_CA_LOADOUT_ENABLED" = "1" ]; then
+            if [ -n "$WARFORK_CA_LOADOUT_INVENTORY" ]; then
+                write_set "g_noclass_inventory" "$WARFORK_CA_LOADOUT_INVENTORY"
+            fi
+            if [ -n "$WARFORK_CA_STRONG_AMMO" ]; then
+                write_set "g_class_strong_ammo" "$WARFORK_CA_STRONG_AMMO"
+            fi
+        fi
         # Pickup item control. These cvars are read by the stock Warfork gametype
         # scripts; set to 0 to prevent the respective items from spawning.
         if [ "$WARFORK_DISABLE_HEALTH" = "1" ]; then
@@ -244,6 +257,10 @@ printf 'Warfork start map: %s\n' "$WARFORK_START_MAP"
 printf 'Warfork networking: %s fps / %s pps\n' "$WARFORK_SV_FPS" "$WARFORK_SV_PPS"
 if [ "$WARFORK_CUSTOM_RULES" = "1" ]; then
     printf 'Warfork custom rules: enabled (weapons: %s)\n' "${WARFORK_ALLOWED_WEAPONS:-all}"
+    if [ "$WARFORK_GAMETYPE" = "ca" ] && [ "$WARFORK_CA_LOADOUT_ENABLED" = "1" ]; then
+        printf 'Warfork CA loadout inventory: %s\n' "${WARFORK_CA_LOADOUT_INVENTORY:-default}"
+        printf 'Warfork CA strong ammo: %s\n' "${WARFORK_CA_STRONG_AMMO:-default}"
+    fi
 fi
 printf 'Warfork server port: %s/udp\n' "$WARFORK_SERVER_PORT"
 printf 'Warfork HTTP port: %s/tcp\n' "$WARFORK_HTTP_PORT"

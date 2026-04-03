@@ -71,6 +71,9 @@ public sealed class WarforkModel(
     public bool IsWeaponAllowed(string weaponKey) =>
         Input.CustomRules.AllowedWeapons.Contains(weaponKey, StringComparer.OrdinalIgnoreCase);
 
+    public WarforkWeaponEntry? FindWeapon(string? weaponKey) =>
+        WarforkWeaponsCatalog.FindWeapon(weaponKey);
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         await LoadAsync(cancellationToken);
@@ -177,6 +180,7 @@ public sealed class WarforkModel(
             Input.SelectedMaps,
             Input.Gametype,
             allowEmpty: !fillDefaultsWhenEmpty && Input.SelectedMaps.Count == 0);
+        Input.CustomRules.Normalize();
     }
 
     private void ValidateInput()
@@ -210,6 +214,47 @@ public sealed class WarforkModel(
         if (Input.SelectedMaps.Count == 0)
         {
             ModelState.AddModelError("Input.SelectedMaps", "Select at least one map for the rotation.");
+        }
+
+        if (Input.CustomRules.Enabled &&
+            Input.CustomRules.ClanArenaLoadoutEnabled &&
+            !string.Equals(Input.Gametype, "ca", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(
+                "Input.CustomRules.ClanArenaLoadoutEnabled",
+                "Clan Arena loadout currently works only when Match mode is Clan Arena.");
+        }
+
+        if (Input.CustomRules.Enabled &&
+            Input.CustomRules.ClanArenaLoadoutEnabled &&
+            !Input.CustomRules.ClanArenaLoadout.Any(rule => rule.Enabled))
+        {
+            ModelState.AddModelError(
+                "Input.CustomRules.ClanArenaLoadoutEnabled",
+                "Select at least one weapon for the Clan Arena spawn loadout.");
+        }
+
+        for (var i = 0; i < Input.CustomRules.ClanArenaLoadout.Count; i++)
+        {
+            var rule = Input.CustomRules.ClanArenaLoadout[i];
+            if (!Input.CustomRules.Enabled || !Input.CustomRules.ClanArenaLoadoutEnabled || !rule.Enabled)
+            {
+                continue;
+            }
+
+            if (!WarforkWeaponsCatalog.IsValidWeapon(rule.Key))
+            {
+                ModelState.AddModelError(
+                    $"Input.CustomRules.ClanArenaLoadout[{i}].Key",
+                    "Choose a supported Warfork weapon.");
+            }
+
+            if (rule.Ammo is < 1 or > WarforkWeaponsCatalog.PracticalInfiniteAmmoReserve)
+            {
+                ModelState.AddModelError(
+                    $"Input.CustomRules.ClanArenaLoadout[{i}].Ammo",
+                    $"Ammo must be between 1 and {WarforkWeaponsCatalog.PracticalInfiniteAmmoReserve}.");
+            }
         }
     }
 
@@ -317,6 +362,11 @@ public sealed class WarforkModel(
 
         public List<string> AllowedWeapons { get; set; } = [];
 
+        [Display(Name = "Enable Clan Arena spawn loadout")]
+        public bool ClanArenaLoadoutEnabled { get; set; }
+
+        public List<ClanArenaLoadoutWeaponInputModel> ClanArenaLoadout { get; set; } = [];
+
         [Display(Name = "Disable health items")]
         public bool DisableHealthItems { get; set; }
 
@@ -330,6 +380,37 @@ public sealed class WarforkModel(
         [Display(Name = "Gravity override")]
         public int? Gravity { get; set; }
 
+        public void Normalize()
+        {
+            AllowedWeapons = AllowedWeapons
+                .Where(WarforkWeaponsCatalog.IsValidWeapon)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var configured = (ClanArenaLoadout ?? [])
+                .Where(rule => WarforkWeaponsCatalog.IsValidWeapon(rule.Key))
+                .GroupBy(rule => rule.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Last(), StringComparer.OrdinalIgnoreCase);
+
+            ClanArenaLoadout = WarforkWeaponsCatalog.Weapons
+                .Select(weapon =>
+                {
+                    if (configured.TryGetValue(weapon.Key, out var rule))
+                    {
+                        rule.Key = weapon.Key;
+                        if (rule.Ammo <= 0)
+                        {
+                            rule.Ammo = weapon.ClanArenaDefaultAmmo;
+                        }
+
+                        return rule;
+                    }
+
+                    return ClanArenaLoadoutWeaponInputModel.ForWeapon(weapon);
+                })
+                .ToList();
+        }
+
         public WarforkCustomRules ToModel() => new()
         {
             Enabled = Enabled,
@@ -337,6 +418,16 @@ public sealed class WarforkModel(
                 .Where(WarforkWeaponsCatalog.IsValidWeapon)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList(),
+            ClanArenaLoadoutEnabled = ClanArenaLoadoutEnabled,
+            ClanArenaLoadout = WarforkWeaponsCatalog.NormalizeClanArenaLoadout(
+                ClanArenaLoadout
+                    .Where(rule => rule.Enabled && WarforkWeaponsCatalog.IsValidWeapon(rule.Key))
+                    .Select(rule => new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = rule.Key,
+                        Ammo = rule.Ammo,
+                        InfiniteAmmo = rule.InfiniteAmmo,
+                    })),
             DisableHealthItems = DisableHealthItems,
             DisableArmorItems = DisableArmorItems,
             DisablePowerups = DisablePowerups,
@@ -350,10 +441,45 @@ public sealed class WarforkModel(
                 {
                     Enabled = rules.Enabled,
                     AllowedWeapons = rules.AllowedWeapons.ToList(),
+                    ClanArenaLoadoutEnabled = rules.ClanArenaLoadoutEnabled,
+                    ClanArenaLoadout = rules.ClanArenaLoadout
+                        .Select(rule =>
+                        {
+                            var weapon = WarforkWeaponsCatalog.FindWeapon(rule.WeaponKey);
+                            return new ClanArenaLoadoutWeaponInputModel
+                            {
+                                Key = rule.WeaponKey,
+                                Enabled = weapon is not null,
+                                Ammo = rule.Ammo > 0 ? rule.Ammo : weapon?.ClanArenaDefaultAmmo ?? 1,
+                                InfiniteAmmo = rule.InfiniteAmmo,
+                            };
+                        })
+                        .ToList(),
                     DisableHealthItems = rules.DisableHealthItems,
                     DisableArmorItems = rules.DisableArmorItems,
                     DisablePowerups = rules.DisablePowerups,
                     Gravity = rules.Gravity,
                 };
+    }
+
+    public sealed class ClanArenaLoadoutWeaponInputModel
+    {
+        public string Key { get; set; } = string.Empty;
+
+        [Display(Name = "Enable weapon")]
+        public bool Enabled { get; set; }
+
+        [Range(1, WarforkWeaponsCatalog.PracticalInfiniteAmmoReserve)]
+        [Display(Name = "Ammo reserve")]
+        public int Ammo { get; set; }
+
+        [Display(Name = "Use practical infinite ammo reserve")]
+        public bool InfiniteAmmo { get; set; }
+
+        public static ClanArenaLoadoutWeaponInputModel ForWeapon(WarforkWeaponEntry weapon) => new()
+        {
+            Key = weapon.Key,
+            Ammo = weapon.ClanArenaDefaultAmmo,
+        };
     }
 }

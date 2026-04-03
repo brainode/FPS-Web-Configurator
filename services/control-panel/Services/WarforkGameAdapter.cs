@@ -21,8 +21,26 @@ public sealed class WarforkGameAdapter : IGameAdapter
         if (s.Instashield) flags.Add("Instashield");
         if (s.CustomRules is { Enabled: true })
         {
-            var weaponCount = s.CustomRules.AllowedWeapons.Count;
-            flags.Add(weaponCount > 0 ? $"Custom rules ({weaponCount} weapons)" : "Custom rules");
+            var hasAnyCustomRuleFlag = false;
+
+            if (string.Equals(s.Gametype, "ca", StringComparison.OrdinalIgnoreCase) &&
+                s.CustomRules.ClanArenaLoadoutEnabled &&
+                s.CustomRules.ClanArenaLoadout.Count > 0)
+            {
+                flags.Add($"CA loadout ({s.CustomRules.ClanArenaLoadout.Count} weapons)");
+                hasAnyCustomRuleFlag = true;
+            }
+
+            if (s.CustomRules.AllowedWeapons.Count > 0)
+            {
+                flags.Add($"Weapon arena ({s.CustomRules.AllowedWeapons.Count})");
+                hasAnyCustomRuleFlag = true;
+            }
+
+            if (!hasAnyCustomRuleFlag)
+            {
+                flags.Add("Custom rules");
+            }
         }
 
         return new GameSummary(
@@ -54,6 +72,9 @@ public sealed class WarforkGameAdapter : IGameAdapter
             ["WARFORK_TIMELIMIT"] = s.Timelimit.ToString(),
             ["WARFORK_RCON_PASSWORD"] = s.RconPassword,
             ["WARFORK_PASSWORD"] = s.ServerPassword,
+            ["WARFORK_CA_LOADOUT_ENABLED"] = "0",
+            ["WARFORK_CA_LOADOUT_INVENTORY"] = string.Empty,
+            ["WARFORK_CA_STRONG_AMMO"] = string.Empty,
         };
 
         if (s.CustomRules is { Enabled: true } rules)
@@ -64,6 +85,15 @@ public sealed class WarforkGameAdapter : IGameAdapter
             env["WARFORK_DISABLE_ARMOR"] = rules.DisableArmorItems ? "1" : "0";
             env["WARFORK_DISABLE_POWERUPS"] = rules.DisablePowerups ? "1" : "0";
             env["WARFORK_GRAVITY"] = rules.Gravity?.ToString() ?? "";
+
+            if (string.Equals(s.Gametype, "ca", StringComparison.OrdinalIgnoreCase) &&
+                rules.ClanArenaLoadoutEnabled &&
+                rules.ClanArenaLoadout.Count > 0)
+            {
+                env["WARFORK_CA_LOADOUT_ENABLED"] = "1";
+                env["WARFORK_CA_LOADOUT_INVENTORY"] = WarforkWeaponsCatalog.BuildClanArenaInventory(rules.ClanArenaLoadout);
+                env["WARFORK_CA_STRONG_AMMO"] = WarforkWeaponsCatalog.BuildClanArenaStrongAmmoString(rules.ClanArenaLoadout);
+            }
         }
 
         return env;

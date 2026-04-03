@@ -142,4 +142,55 @@ public sealed class WarforkConfigurationSerializerTests
         Assert.Equal("rcon-secret", restored.RconPassword);
         Assert.Equal("join-secret", restored.ServerPassword);
     }
+
+    [Fact]
+    public void Serialize_AndDeserialize_RoundTripsClanArenaLoadout()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return", "pressure"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "electrobolt",
+                        Ammo = 99,
+                        InfiniteAmmo = true
+                    },
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "rocketlauncher",
+                        Ammo = 20,
+                        InfiniteAmmo = false
+                    }
+                ]
+            }
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        var restored = WarforkConfigurationSerializer.Deserialize(json);
+
+        Assert.NotNull(restored.CustomRules);
+        Assert.True(restored.CustomRules!.ClanArenaLoadoutEnabled);
+        Assert.Collection(
+            restored.CustomRules.ClanArenaLoadout,
+            rocketlauncher =>
+            {
+                Assert.Equal("rocketlauncher", rocketlauncher.WeaponKey);
+                Assert.Equal(20, rocketlauncher.Ammo);
+                Assert.False(rocketlauncher.InfiniteAmmo);
+            },
+            electrobolt =>
+            {
+                Assert.Equal("electrobolt", electrobolt.WeaponKey);
+                Assert.Equal(99, electrobolt.Ammo);
+                Assert.True(electrobolt.InfiniteAmmo);
+            });
+    }
 }

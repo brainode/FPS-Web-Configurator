@@ -56,6 +56,14 @@ public static class WarforkConfigurationSerializer
                             .Where(WarforkWeaponsCatalog.IsValidWeapon)
                             .Distinct(StringComparer.OrdinalIgnoreCase)
                             .ToList(),
+                        ClanArenaLoadoutEnabled = doc.ClanArenaLoadoutEnabled,
+                        ClanArenaLoadout = WarforkWeaponsCatalog.NormalizeClanArenaLoadout(
+                            doc.ClanArenaLoadout?.Select(rule => new WarforkClanArenaWeaponLoadout
+                            {
+                                WeaponKey = rule.WeaponKey,
+                                Ammo = rule.Ammo,
+                                InfiniteAmmo = rule.InfiniteAmmo
+                            })),
                         DisableHealthItems = doc.DisableHealth,
                         DisableArmorItems = doc.DisableArmor,
                         DisablePowerups = doc.DisablePowerups,
@@ -88,6 +96,15 @@ public static class WarforkConfigurationSerializer
                 AllowedWeapons = rules.AllowedWeapons
                     .Where(WarforkWeaponsCatalog.IsValidWeapon)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
+                ClanArenaLoadoutEnabled = rules.ClanArenaLoadoutEnabled,
+                ClanArenaLoadout = WarforkWeaponsCatalog.NormalizeClanArenaLoadout(rules.ClanArenaLoadout)
+                    .Select(rule => new ClanArenaWeaponLoadoutDoc
+                    {
+                        WeaponKey = rule.WeaponKey,
+                        Ammo = rule.Ammo,
+                        InfiniteAmmo = rule.InfiniteAmmo,
+                    })
                     .ToList(),
                 DisableHealth = rules.DisableHealthItems,
                 DisableArmor = rules.DisableArmorItems,
@@ -135,9 +152,18 @@ public static class WarforkConfigurationSerializer
     {
         [JsonPropertyName("enabled")] public bool Enabled { get; set; }
         [JsonPropertyName("allowed_weapons")] public List<string> AllowedWeapons { get; set; } = [];
+        [JsonPropertyName("clan_arena_loadout_enabled")] public bool ClanArenaLoadoutEnabled { get; set; }
+        [JsonPropertyName("clan_arena_loadout")] public List<ClanArenaWeaponLoadoutDoc> ClanArenaLoadout { get; set; } = [];
         [JsonPropertyName("disable_health")] public bool DisableHealth { get; set; }
         [JsonPropertyName("disable_armor")] public bool DisableArmor { get; set; }
         [JsonPropertyName("disable_powerups")] public bool DisablePowerups { get; set; }
         [JsonPropertyName("gravity")] public int? Gravity { get; set; }
+    }
+
+    private sealed class ClanArenaWeaponLoadoutDoc
+    {
+        [JsonPropertyName("weapon_key")] public string WeaponKey { get; set; } = "";
+        [JsonPropertyName("ammo")] public int Ammo { get; set; }
+        [JsonPropertyName("infinite_ammo")] public bool InfiniteAmmo { get; set; }
     }
 }
