@@ -235,6 +235,58 @@ public sealed class WarforkWeaponsCatalogTests
         Assert.Equal("9999", parts[7]); // electrobolt bolts (infinite)
     }
 
+    // ── SupportsSplashDamageOverride ──────────────────────────────────────────
+
+    [Theory]
+    [InlineData("grenadelauncher", true)]
+    [InlineData("rocketlauncher",  true)]
+    [InlineData("plasmagun",       true)]
+    [InlineData("electrobolt",     false)]
+    [InlineData("machinegun",      false)]
+    [InlineData("riotgun",         false)]
+    [InlineData("lasergun",        false)]
+    public void SupportsSplashDamageOverride_MatchesCatalog(string key, bool expected)
+    {
+        Assert.Equal(expected, WarforkWeaponsCatalog.SupportsSplashDamageOverride(key));
+    }
+
+    // ── BuildSplashDamageOverrideString ───────────────────────────────────────
+
+    [Fact]
+    public void BuildSplashDamageOverrideString_EmptyLoadout_ReturnsEmpty()
+    {
+        var result = WarforkWeaponsCatalog.BuildSplashDamageOverrideString([]);
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void BuildSplashDamageOverrideString_ExcludesUnsupportedWeapons()
+    {
+        var loadout = new[]
+        {
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "electrobolt",    Ammo = 15, SplashDamageOverride = 999 },
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "rocketlauncher", Ammo = 20, SplashDamageOverride = 30  },
+        };
+
+        var result = WarforkWeaponsCatalog.BuildSplashDamageOverrideString(loadout);
+
+        Assert.Equal("rocketlauncher=30", result);
+    }
+
+    [Fact]
+    public void BuildSplashDamageOverrideString_MultipleProjectiles_UseCatalogOrder()
+    {
+        var loadout = new[]
+        {
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "rocketlauncher",  Ammo = 20, SplashDamageOverride = 40 },
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "grenadelauncher", Ammo = 15, SplashDamageOverride = 60 },
+        };
+
+        var result = WarforkWeaponsCatalog.BuildSplashDamageOverrideString(loadout);
+
+        Assert.Equal("grenadelauncher=60 rocketlauncher=40", result);
+    }
+
     // ── NormalizeClanArenaLoadout ─────────────────────────────────────────────
 
     [Fact]
@@ -292,5 +344,31 @@ public sealed class WarforkWeaponsCatalogTests
         var normalized = WarforkWeaponsCatalog.NormalizeClanArenaLoadout(loadout);
 
         Assert.False(normalized[0].HealOnHit);
+    }
+
+    [Fact]
+    public void NormalizeClanArenaLoadout_SplashDamageOverride_ClearedForUnsupportedWeapons()
+    {
+        var loadout = new[]
+        {
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "electrobolt", Ammo = 15, SplashDamageOverride = 999 },
+        };
+
+        var normalized = WarforkWeaponsCatalog.NormalizeClanArenaLoadout(loadout);
+
+        Assert.Null(normalized[0].SplashDamageOverride);
+    }
+
+    [Fact]
+    public void NormalizeClanArenaLoadout_SplashDamageOverride_PreservedForProjectileWeapons()
+    {
+        var loadout = new[]
+        {
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "rocketlauncher", Ammo = 20, SplashDamageOverride = 30 },
+        };
+
+        var normalized = WarforkWeaponsCatalog.NormalizeClanArenaLoadout(loadout);
+
+        Assert.Equal(30, normalized[0].SplashDamageOverride);
     }
 }

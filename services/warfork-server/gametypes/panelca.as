@@ -29,6 +29,7 @@ Cvar g_panelca_allow_powerups( "g_panelca_allow_powerups", "0", 0 );
 Cvar g_panelca_allowed_weapons( "g_panelca_allowed_weapons", "", 0 );
 Cvar g_panelca_infinite_weapons( "g_panelca_infinite_weapons", "", 0 );
 Cvar g_panelca_damage_overrides( "g_panelca_damage_overrides", "", 0 );
+Cvar g_panelca_splash_overrides( "g_panelca_splash_overrides", "", 0 );
 Cvar g_panelca_healing_weapons( "g_panelca_healing_weapons", "", 0 );
 
 bool panelcaApplyingDamageCorrection = false;
@@ -196,6 +197,30 @@ int PANELCA_GetDamageOverrideValue( const String &in weaponKey )
     return 0;
 }
 
+int PANELCA_GetSplashOverrideValue( const String &in weaponKey )
+{
+    String wanted = weaponKey.tolower();
+
+    for ( int i = 0; ; i++ )
+    {
+        String token = g_panelca_splash_overrides.string.getToken( i );
+        if ( token.len() == 0 )
+            return 0;
+
+        uint sep = token.locate( "=", 0 );
+        if ( sep == token.length() )
+            continue;
+
+        if ( token.substr( 0, sep ).tolower() != wanted )
+            continue;
+
+        int value = token.substr( sep + 1 ).toInt();
+        return value > 0 ? value : 0;
+    }
+
+    return 0;
+}
+
 bool PANELCA_IsHealingWeapon( const String &in weaponKey )
 {
     return PANELCA_HasToken( g_panelca_healing_weapons.string, weaponKey );
@@ -273,6 +298,39 @@ void PANELCA_HealingRocketTouch( Entity @ent, Entity @other, const Vec3 planeNor
     ent.freeEntity();
 }
 
+// Custom rocket touch callback used when a damage or splash override is configured.
+// Reads the override values at impact time to avoid the per-frame GT_ThinkRules timing
+// gap that can cause same-frame impacts to use stock damage.
+void PANELCA_OverriddenRocketTouch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags )
+{
+    if ( surfFlags & SURF_NOIMPACT )
+    {
+        ent.freeEntity();
+        return;
+    }
+
+    int directOverride = PANELCA_GetDamageOverrideValue( "rocketlauncher" );
+    int splashOverride  = PANELCA_GetSplashOverrideValue( "rocketlauncher" );
+
+    // Use override values if set; otherwise fall back to stock projectile values.
+    float directDmg  = directOverride > 0 ? float( directOverride ) : float( ent.projectileMaxDamage );
+    float splashMax  = splashOverride  > 0 ? float( splashOverride  ) : directDmg;
+    int   radius     = int( ent.projectileSplashRadius );
+    float knockback  = ent.projectileMaxKnockback;
+
+    // splashDamage applies to all players in the explosion radius (including direct hit target).
+    // Note: the engine hardcodes minDamage=1 for splashDamage, so falloff goes from splashMax down to 1.
+    ent.splashDamage( @ent.owner, radius, splashMax, knockback, 0, MOD_ROCKET_SPLASH_S );
+
+    // If direct hit damage is higher than splash max, apply the extra directly to the touched entity.
+    float delta = directDmg - splashMax;
+    if ( @other != null && other.inuse && @other.client != null && delta > 0.0f )
+        ent.sustainDamage( @ent, @ent.owner, planeNormal, delta, 0, 0, MOD_ROCKET_S );
+
+    ent.explosionEffect( radius );
+    ent.freeEntity();
+}
+
 void PANELCA_ApplyProjectileOverride( Entity @projectile )
 {
     String weaponKey = PANELCA_ProjectileClassnameToWeaponKey( projectile.classname );
@@ -280,6 +338,18 @@ void PANELCA_ApplyProjectileOverride( Entity @projectile )
         return;
 
     int damageOverride = PANELCA_GetDamageOverrideValue( weaponKey );
+    int splashOverride  = PANELCA_GetSplashOverrideValue( weaponKey );
+
+    // For rockets, assign a custom touch callback that reads override values at impact
+    // time, bypassing the GT_ThinkRules timing gap for close-range shots.
+    if ( weaponKey == "rocketlauncher" && ( damageOverride > 0 || splashOverride > 0 ) )
+    {
+        projectile.allowFunctionOverride = true;
+        projectile.touch = PANELCA_OverriddenRocketTouch;
+        return;
+    }
+
+    // For other projectiles (grenade, plasma), rewrite damage fields each frame.
     if ( damageOverride > 0 )
     {
         int currentMaxDamage = projectile.projectileMaxDamage > 0 ? projectile.projectileMaxDamage : damageOverride;
@@ -296,13 +366,11 @@ void PANELCA_ApplyProjectileOverride( Entity @projectile )
         projectile.projectileMaxDamage = damageOverride;
         projectile.projectileMinDamage = scaledMinDamage;
     }
-
-    // Healing rocket touch override is reserved for a future iteration.
 }
 
 void PANELCA_ApplyProjectileOverrides()
 {
-    if ( g_panelca_damage_overrides.string.len() == 0 )
+    if ( g_panelca_damage_overrides.string.len() == 0 && g_panelca_splash_overrides.string.len() == 0 )
         return;
 
     for ( int i = maxClients; i < numEntities; i++ )
@@ -1232,6 +1300,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
         ent.client.inventoryGiveItem( WEAP_INSTAGUN );
         ent.client.inventorySetCount( AMMO_INSTAS, 1 );
         ent.client.inventorySetCount( AMMO_WEAK_INSTAS, 1 );
+        ent.client.selectWeapon( -1 );
     }
     else
     {
@@ -1269,13 +1338,12 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team )
         // give armor
         ent.client.armor = 150;
 
-        // select rocket launcher
-        ent.client.selectWeapon( WEAP_ROCKETLAUNCHER );
+        // prefer rocket launcher; fall back to auto-select if RL is not in the loadout
+        if ( ent.client.inventoryCount( WEAP_ROCKETLAUNCHER ) > 0 )
+            ent.client.selectWeapon( WEAP_ROCKETLAUNCHER );
+        else
+            ent.client.selectWeapon( -1 );
     }
-
-    // auto-select best weapon in the inventory
-    if( ent.client.pendingWeapon == WEAP_NONE )
-		ent.client.selectWeapon( -1 );
 
 	ent.svflags |= SVF_FORCETEAM;
 
@@ -1450,6 +1518,7 @@ void GT_InitGametype()
                  + "set g_panelca_allowed_weapons \"\"\n"
                  + "set g_panelca_infinite_weapons \"\"\n"
                  + "set g_panelca_damage_overrides \"\"\n"
+                 + "set g_panelca_splash_overrides \"\"\n"
                  + "set g_panelca_healing_weapons \"\"\n"
                  + "\necho \"" + gametype.name + ".cfg executed\"\n";
 

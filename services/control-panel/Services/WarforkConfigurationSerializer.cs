@@ -64,6 +64,7 @@ public static class WarforkConfigurationSerializer
                                 Ammo = rule.Ammo,
                                 InfiniteAmmo = rule.InfiniteAmmo,
                                 DamageOverride = rule.DamageOverride is > 0 ? rule.DamageOverride : null,
+                                SplashDamageOverride = rule.SplashDamageOverride is > 0 ? rule.SplashDamageOverride : null,
                                 HealOnHit = rule.HealOnHit
                             })),
                         DisableHealthItems = doc.DisableHealth,
@@ -107,6 +108,7 @@ public static class WarforkConfigurationSerializer
                         Ammo = rule.Ammo,
                         InfiniteAmmo = rule.InfiniteAmmo,
                         DamageOverride = rule.DamageOverride,
+                        SplashDamageOverride = rule.SplashDamageOverride,
                         HealOnHit = rule.HealOnHit
                     })
                     .ToList(),
@@ -170,6 +172,7 @@ public static class WarforkConfigurationSerializer
         [JsonPropertyName("ammo")] public int Ammo { get; set; }
         [JsonPropertyName("infinite_ammo")] public bool InfiniteAmmo { get; set; }
         [JsonPropertyName("damage_override")] public int? DamageOverride { get; set; }
+        [JsonPropertyName("splash_damage_override")] public int? SplashDamageOverride { get; set; }
         [JsonPropertyName("heal_on_hit")] public bool HealOnHit { get; set; }
     }
 }

@@ -77,6 +77,9 @@ public sealed class WarforkModel(
     public bool SupportsDamageOverride(string? weaponKey) =>
         WarforkWeaponsCatalog.SupportsDamageOverride(weaponKey);
 
+    public bool SupportsSplashDamageOverride(string? weaponKey) =>
+        WarforkWeaponsCatalog.SupportsSplashDamageOverride(weaponKey);
+
     public bool SupportsHealingMode(string? weaponKey) =>
         WarforkWeaponsCatalog.SupportsHealingMode(weaponKey);
 
@@ -290,6 +293,14 @@ public sealed class WarforkModel(
                     "Damage override is currently supported only for Electrobolt and projectile weapons in custom Clan Arena.");
             }
 
+            if (rule.SplashDamageOverride is not null &&
+                !WarforkWeaponsCatalog.SupportsSplashDamageOverride(rule.Key))
+            {
+                ModelState.AddModelError(
+                    $"Input.CustomRules.ClanArenaLoadout[{i}].SplashDamageOverride",
+                    "Splash damage override is only supported for projectile weapons (Grenade Launcher, Rocket Launcher, Plasmagun).");
+            }
+
             if (rule.HealOnHit &&
                 !WarforkWeaponsCatalog.SupportsHealingMode(rule.Key))
             {
@@ -450,6 +461,11 @@ public sealed class WarforkModel(
                             rule.DamageOverride = null;
                         }
 
+                        if (rule.SplashDamageOverride <= 0 || !weapon.SupportsSplashDamageOverride)
+                        {
+                            rule.SplashDamageOverride = null;
+                        }
+
                         if (!weapon.SupportsHealingMode)
                         {
                             rule.HealOnHit = false;
@@ -482,6 +498,9 @@ public sealed class WarforkModel(
                         DamageOverride = WarforkWeaponsCatalog.SupportsDamageOverride(rule.Key) && rule.DamageOverride is > 0
                             ? rule.DamageOverride
                             : null,
+                        SplashDamageOverride = WarforkWeaponsCatalog.SupportsSplashDamageOverride(rule.Key) && rule.SplashDamageOverride is > 0
+                            ? rule.SplashDamageOverride
+                            : null,
                         HealOnHit = WarforkWeaponsCatalog.SupportsHealingMode(rule.Key) && rule.HealOnHit,
                     })),
             DisableHealthItems = DisableHealthItems,
@@ -511,6 +530,9 @@ public sealed class WarforkModel(
                                 DamageOverride = weapon?.SupportsDamageOverride == true && rule.DamageOverride is > 0
                                     ? rule.DamageOverride
                                     : null,
+                                SplashDamageOverride = weapon?.SupportsSplashDamageOverride == true && rule.SplashDamageOverride is > 0
+                                    ? rule.SplashDamageOverride
+                                    : null,
                                 HealOnHit = weapon?.SupportsHealingMode == true && rule.HealOnHit,
                             };
                         })
@@ -539,6 +561,10 @@ public sealed class WarforkModel(
         [Range(1, 9999)]
         [Display(Name = "Damage override")]
         public int? DamageOverride { get; set; }
+
+        [Range(1, 9999)]
+        [Display(Name = "Splash damage override")]
+        public int? SplashDamageOverride { get; set; }
 
         [Display(Name = "Heal on hit")]
         public bool HealOnHit { get; set; }

@@ -35,7 +35,7 @@ public sealed class WarforkGameAdapter : IGameAdapter
 
             if (string.Equals(s.Gametype, "ca", StringComparison.OrdinalIgnoreCase) &&
                 s.CustomRules.ClanArenaLoadoutEnabled &&
-                s.CustomRules.ClanArenaLoadout.Any(rule => rule.DamageOverride is > 0 || rule.HealOnHit))
+                s.CustomRules.ClanArenaLoadout.Any(rule => rule.DamageOverride is > 0 || rule.SplashDamageOverride is > 0 || rule.HealOnHit))
             {
                 flags.Add("Weapon tuning");
                 hasAnyCustomRuleFlag = true;
@@ -89,6 +89,7 @@ public sealed class WarforkGameAdapter : IGameAdapter
             ["WARFORK_CA_STRONG_AMMO"] = string.Empty,
             ["WARFORK_CA_INFINITE_WEAPONS"] = string.Empty,
             ["WARFORK_CA_DAMAGE_OVERRIDES"] = string.Empty,
+            ["WARFORK_CA_SPLASH_OVERRIDES"] = string.Empty,
             ["WARFORK_CA_HEALING_WEAPONS"] = string.Empty,
         };
 
@@ -109,6 +110,7 @@ public sealed class WarforkGameAdapter : IGameAdapter
                 env["WARFORK_CA_LOADOUT_INVENTORY"] = WarforkWeaponsCatalog.BuildClanArenaInventory(rules.ClanArenaLoadout);
                 env["WARFORK_CA_STRONG_AMMO"] = WarforkWeaponsCatalog.BuildClanArenaStrongAmmoString(rules.ClanArenaLoadout);
                 env["WARFORK_CA_DAMAGE_OVERRIDES"] = WarforkWeaponsCatalog.BuildDamageOverrideString(rules.ClanArenaLoadout);
+                env["WARFORK_CA_SPLASH_OVERRIDES"] = WarforkWeaponsCatalog.BuildSplashDamageOverrideString(rules.ClanArenaLoadout);
                 env["WARFORK_CA_HEALING_WEAPONS"] = WarforkWeaponsCatalog.BuildHealingWeaponsString(rules.ClanArenaLoadout);
                 env["WARFORK_CA_INFINITE_WEAPONS"] = string.Join(
                     " ",

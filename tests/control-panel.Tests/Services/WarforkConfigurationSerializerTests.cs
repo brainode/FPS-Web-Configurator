@@ -224,6 +224,70 @@ public sealed class WarforkConfigurationSerializerTests
     }
 
     [Fact]
+    public void Serialize_AndDeserialize_RoundTripsSplashDamageOverride()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "rocketlauncher",
+                        Ammo = 20,
+                        DamageOverride = 70,
+                        SplashDamageOverride = 30
+                    }
+                ]
+            }
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        var restored = WarforkConfigurationSerializer.Deserialize(json);
+
+        Assert.NotNull(restored.CustomRules);
+        Assert.Single(restored.CustomRules!.ClanArenaLoadout);
+        Assert.Equal(70, restored.CustomRules.ClanArenaLoadout[0].DamageOverride);
+        Assert.Equal(30, restored.CustomRules.ClanArenaLoadout[0].SplashDamageOverride);
+    }
+
+    [Fact]
+    public void Serialize_AndDeserialize_DropsSplashDamageOverride_ForUnsupportedWeapons()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "electrobolt",
+                        Ammo = 15,
+                        SplashDamageOverride = 999
+                    }
+                ]
+            }
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        var restored = WarforkConfigurationSerializer.Deserialize(json);
+
+        Assert.Null(restored.CustomRules!.ClanArenaLoadout[0].SplashDamageOverride);
+    }
+
+    [Fact]
     public void Serialize_AndDeserialize_RoundTripsPickupDisableFlags()
     {
         var settings = new WarforkServerSettings

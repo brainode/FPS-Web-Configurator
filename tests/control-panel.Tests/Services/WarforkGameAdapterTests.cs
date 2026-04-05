@@ -187,6 +187,7 @@ public sealed class WarforkGameAdapterTests
         Assert.Contains("WARFORK_CA_STRONG_AMMO", env.Keys);
         Assert.Contains("WARFORK_CA_INFINITE_WEAPONS", env.Keys);
         Assert.Contains("WARFORK_CA_DAMAGE_OVERRIDES", env.Keys);
+        Assert.Contains("WARFORK_CA_SPLASH_OVERRIDES", env.Keys);
         Assert.Contains("WARFORK_CA_HEALING_WEAPONS", env.Keys);
     }
 
@@ -351,6 +352,70 @@ public sealed class WarforkGameAdapterTests
         Assert.Equal("1", env["WARFORK_DISABLE_HEALTH"]);
         Assert.Equal("1", env["WARFORK_DISABLE_ARMOR"]);
         Assert.Equal("1", env["WARFORK_DISABLE_POWERUPS"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_ContainsExpectedSplashOverridesKey()
+    {
+        var env = _adapter.GetContainerEnv(null);
+        Assert.Contains("WARFORK_CA_SPLASH_OVERRIDES", env.Keys);
+    }
+
+    [Fact]
+    public void GetContainerEnv_WithSplashOverride_SetsSplashEnvVar()
+    {
+        var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "rocketlauncher",
+                        Ammo = 20,
+                        DamageOverride = 70,
+                        SplashDamageOverride = 30
+                    }
+                ]
+            }
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("rocketlauncher=70", env["WARFORK_CA_DAMAGE_OVERRIDES"]);
+        Assert.Equal("rocketlauncher=30", env["WARFORK_CA_SPLASH_OVERRIDES"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_SplashOverride_ExcludesUnsupportedWeapons()
+    {
+        // electrobolt has SupportsSplashDamageOverride = false
+        var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout { WeaponKey = "electrobolt",    Ammo = 15, SplashDamageOverride = 999 },
+                    new WarforkClanArenaWeaponLoadout { WeaponKey = "rocketlauncher", Ammo = 20, SplashDamageOverride = 30  },
+                ]
+            }
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("rocketlauncher=30", env["WARFORK_CA_SPLASH_OVERRIDES"]);
     }
 
     [Fact]

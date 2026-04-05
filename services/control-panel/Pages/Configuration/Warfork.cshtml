@@ -321,8 +321,21 @@
                                                            min="1"
                                                            max="9999"
                                                            placeholder="Leave empty to keep stock damage" />
-                                                    <div class="form-hint">For Electrobolt this is the direct hit damage. For projectile weapons the custom runtime rewrites projectile damage in the official AngelScript gametype.</div>
+                                                    <div class="form-hint">For Electrobolt: direct hit damage. For projectile weapons: direct hit damage (if Splash override below is also set, only the direct hit component uses this value).</div>
                                                     <span asp-validation-for="Input.CustomRules.ClanArenaLoadout[i].DamageOverride" class="text-danger small"></span>
+                                                </div>
+                                            }
+                                            @if (Model.SupportsSplashDamageOverride(loadoutRule.Key))
+                                            {
+                                                <div class="col-12">
+                                                    <label asp-for="Input.CustomRules.ClanArenaLoadout[i].SplashDamageOverride" class="form-label"></label>
+                                                    <input asp-for="Input.CustomRules.ClanArenaLoadout[i].SplashDamageOverride"
+                                                           class="form-control"
+                                                           min="1"
+                                                           max="9999"
+                                                           placeholder="Leave empty to use Damage override or stock" />
+                                                    <div class="form-hint">Maximum splash damage at explosion centre; falls off to ~1 at radius edge. Set lower than Damage override for rocket-jump-friendly configs.</div>
+                                                    <span asp-validation-for="Input.CustomRules.ClanArenaLoadout[i].SplashDamageOverride" class="text-danger small"></span>
                                                 </div>
                                             }
                                             @if (Model.SupportsHealingMode(loadoutRule.Key))
