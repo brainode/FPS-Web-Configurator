@@ -325,7 +325,7 @@ void PANELCA_OverriddenRocketTouch( Entity @ent, Entity @other, const Vec3 plane
     // If direct hit damage is higher than splash max, apply the extra directly to the touched entity.
     float delta = directDmg - splashMax;
     if ( @other != null && other.inuse && @other.client != null && delta > 0.0f )
-        ent.sustainDamage( @ent, @ent.owner, planeNormal, delta, 0, 0, MOD_ROCKET_S );
+        other.sustainDamage( @ent, @ent.owner, planeNormal, delta, 0, 0, MOD_ROCKET_S );
 
     ent.explosionEffect( radius );
     ent.freeEntity();
@@ -345,7 +345,7 @@ void PANELCA_ApplyProjectileOverride( Entity @projectile )
     if ( weaponKey == "rocketlauncher" && ( damageOverride > 0 || splashOverride > 0 ) )
     {
         projectile.allowFunctionOverride = true;
-        projectile.touch = PANELCA_OverriddenRocketTouch;
+        @projectile.touch = PANELCA_OverriddenRocketTouch;
         return;
     }
 
