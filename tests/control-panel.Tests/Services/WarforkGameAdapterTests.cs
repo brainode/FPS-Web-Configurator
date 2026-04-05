@@ -272,4 +272,138 @@ public sealed class WarforkGameAdapterTests
         Assert.Equal("rocketlauncher=45 electrobolt=99", env["WARFORK_CA_DAMAGE_OVERRIDES"]);
         Assert.Equal("rocketlauncher", env["WARFORK_CA_HEALING_WEAPONS"]);
     }
+
+    [Fact]
+    public void GetContainerEnv_WithGravity_SetsGravityEnvVar()
+    {
+        var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules { Enabled = true, Gravity = 500 }
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("500", env["WARFORK_GRAVITY"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_WithoutGravity_GravityEnvIsEmpty()
+    {
+        var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules { Enabled = true }
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal(string.Empty, env["WARFORK_GRAVITY"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_WithDisabledHealthItems_SetsDisableFlag()
+    {
+        var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                DisableHealthItems = true,
+                DisableArmorItems = false,
+                DisablePowerups = false
+            }
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("1", env["WARFORK_DISABLE_HEALTH"]);
+        Assert.Equal("0", env["WARFORK_DISABLE_ARMOR"]);
+        Assert.Equal("0", env["WARFORK_DISABLE_POWERUPS"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_WithAllPickupsDisabled_SetsAllDisableFlags()
+    {
+        var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                DisableHealthItems = true,
+                DisableArmorItems = true,
+                DisablePowerups = true
+            }
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("1", env["WARFORK_DISABLE_HEALTH"]);
+        Assert.Equal("1", env["WARFORK_DISABLE_ARMOR"]);
+        Assert.Equal("1", env["WARFORK_DISABLE_POWERUPS"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_DamageOverrides_ExcludesUnsupportedWeapons()
+    {
+        // riotgun and lasergun have SupportsDamageOverride = false, so their
+        // DamageOverride values must NOT appear in WARFORK_CA_DAMAGE_OVERRIDES.
+        var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout { WeaponKey = "riotgun",       Ammo = 10, DamageOverride = 999 },
+                    new WarforkClanArenaWeaponLoadout { WeaponKey = "lasergun",      Ammo = 60, DamageOverride = 999 },
+                    new WarforkClanArenaWeaponLoadout { WeaponKey = "electrobolt",   Ammo = 15, DamageOverride = 75  },
+                ]
+            }
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("electrobolt=75", env["WARFORK_CA_DAMAGE_OVERRIDES"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_HealingWeapons_ExcludesUnsupportedWeapons()
+    {
+        // Only rocketlauncher has SupportsHealingMode = true.
+        var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout { WeaponKey = "electrobolt",   Ammo = 15, HealOnHit = true },
+                    new WarforkClanArenaWeaponLoadout { WeaponKey = "rocketlauncher", Ammo = 20, HealOnHit = true },
+                ]
+            }
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("rocketlauncher", env["WARFORK_CA_HEALING_WEAPONS"]);
+    }
 }

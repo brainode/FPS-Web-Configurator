@@ -297,16 +297,12 @@ void PANELCA_ApplyProjectileOverride( Entity @projectile )
         projectile.projectileMinDamage = scaledMinDamage;
     }
 
-    if ( weaponKey == "rocketlauncher" && PANELCA_IsHealingWeapon( weaponKey ) )
-    {
-        projectile.allowFunctionOverride = true;
-        projectile.touch = PANELCA_HealingRocketTouch;
-    }
+    // Healing rocket touch override is reserved for a future iteration.
 }
 
 void PANELCA_ApplyProjectileOverrides()
 {
-    if ( g_panelca_damage_overrides.string.len() == 0 && g_panelca_healing_weapons.string.len() == 0 )
+    if ( g_panelca_damage_overrides.string.len() == 0 )
         return;
 
     for ( int i = maxClients; i < numEntities; i++ )
@@ -381,8 +377,7 @@ void PANELCA_HandleDamageScoreEvent( const String &in args )
         return;
     }
 
-    if ( weaponKey == "rocketlauncher" && PANELCA_IsHealingWeapon( weaponKey ) )
-        PANELCA_ApplyHealingRocketScoreEventFallback( target, actualDamage );
+    // Healing rocket score event fallback is reserved for a future iteration.
 }
 
 const int CA_ROUNDSTATE_NONE = 0;

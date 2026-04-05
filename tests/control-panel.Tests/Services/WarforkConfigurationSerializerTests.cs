@@ -200,4 +200,52 @@ public sealed class WarforkConfigurationSerializerTests
                 Assert.False(electrobolt.HealOnHit);
             });
     }
+
+    [Fact]
+    public void Serialize_AndDeserialize_RoundTripsGravity()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                Gravity = 500
+            }
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        var restored = WarforkConfigurationSerializer.Deserialize(json);
+
+        Assert.NotNull(restored.CustomRules);
+        Assert.Equal(500, restored.CustomRules!.Gravity);
+    }
+
+    [Fact]
+    public void Serialize_AndDeserialize_RoundTripsPickupDisableFlags()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                DisableHealthItems = true,
+                DisableArmorItems = false,
+                DisablePowerups = true
+            }
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        var restored = WarforkConfigurationSerializer.Deserialize(json);
+
+        Assert.NotNull(restored.CustomRules);
+        Assert.True(restored.CustomRules!.DisableHealthItems);
+        Assert.False(restored.CustomRules!.DisableArmorItems);
+        Assert.True(restored.CustomRules!.DisablePowerups);
+    }
 }
