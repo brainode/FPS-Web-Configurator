@@ -282,7 +282,7 @@ void PANELCA_HealAroundRocket( Entity @rocket, Entity @directTarget, float healA
 
 void PANELCA_HealingRocketTouch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags )
 {
-    if ( surfFlags & SURF_NOIMPACT )
+    if ( ( surfFlags & SURF_NOIMPACT ) != 0 )
     {
         ent.freeEntity();
         return;
@@ -303,7 +303,7 @@ void PANELCA_HealingRocketTouch( Entity @ent, Entity @other, const Vec3 planeNor
 // gap that can cause same-frame impacts to use stock damage.
 void PANELCA_OverriddenRocketTouch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags )
 {
-    if ( surfFlags & SURF_NOIMPACT )
+    if ( ( surfFlags & SURF_NOIMPACT ) != 0 )
     {
         ent.freeEntity();
         return;
