@@ -298,6 +298,52 @@ void PANELCA_HealingRocketTouch( Entity @ent, Entity @other, const Vec3 planeNor
     ent.freeEntity();
 }
 
+int PANELCA_ScaleProjectileMinDamage( Entity @projectile, int maxDamage )
+{
+    int currentMaxDamage = projectile.projectileMaxDamage > 0 ? projectile.projectileMaxDamage : maxDamage;
+    int currentMinDamage = projectile.projectileMinDamage > 0 ? projectile.projectileMinDamage : 1;
+    int scaledMinDamage = currentMaxDamage > 0
+        ? int( float( maxDamage ) * float( currentMinDamage ) / float( currentMaxDamage ) )
+        : maxDamage;
+
+    if ( scaledMinDamage < 1 )
+        scaledMinDamage = 1;
+    if ( scaledMinDamage > maxDamage )
+        scaledMinDamage = maxDamage;
+
+    return scaledMinDamage;
+}
+
+void PANELCA_ApplyProjectileDamageProfile( Entity @projectile, int maxDamage )
+{
+    if ( maxDamage <= 0 )
+        return;
+
+    projectile.projectileMinDamage = PANELCA_ScaleProjectileMinDamage( projectile, maxDamage );
+    projectile.projectileMaxDamage = maxDamage;
+}
+
+void PANELCA_SplashDamageIgnoringDirectTarget( Entity @ent, Entity @directTarget, int radius, float damage, float knockback, int damageMod )
+{
+    if ( radius <= 0 || damage <= 0.0f )
+        return;
+
+    bool restoreDirectTargetDamage = false;
+    int directTargetTakeDamage = 0;
+
+    if ( @directTarget != null && directTarget.inuse && directTarget.takeDamage != 0 )
+    {
+        directTargetTakeDamage = directTarget.takeDamage;
+        directTarget.takeDamage = 0;
+        restoreDirectTargetDamage = true;
+    }
+
+    ent.splashDamage( @ent.owner, radius, damage, knockback, 0, damageMod );
+
+    if ( restoreDirectTargetDamage && @directTarget != null && directTarget.inuse )
+        directTarget.takeDamage = directTargetTakeDamage;
+}
+
 // Custom rocket touch callback used when a damage or splash override is configured.
 // Reads the override values at impact time to avoid the per-frame GT_ThinkRules timing
 // gap that can cause same-frame impacts to use stock damage.
@@ -318,15 +364,28 @@ void PANELCA_OverriddenRocketTouch( Entity @ent, Entity @other, const Vec3 plane
     int   radius     = int( ent.projectileSplashRadius );
     float knockback  = ent.projectileMaxKnockback;
 
-    // splashDamage applies to all players in the explosion radius (including direct hit target).
-    // Note: the engine hardcodes minDamage=1 for splashDamage, so falloff goes from splashMax down to 1.
-    ent.splashDamage( @ent.owner, radius, splashMax, knockback, 0, MOD_ROCKET_SPLASH_S );
+    if ( @other != null && other.inuse && other.takeDamage != 0 )
+        other.sustainDamage( @ent, @ent.owner, ent.velocity, directDmg, knockback, 0, MOD_ROCKET_S );
 
-    // If direct hit damage is higher than splash max, apply the extra directly to the touched entity.
-    float delta = directDmg - splashMax;
-    if ( @other != null && other.inuse && @other.client != null && delta > 0.0f )
-        other.sustainDamage( @ent, @ent.owner, planeNormal, delta, 0, 0, MOD_ROCKET_S );
+    // Stock rocket splash ignores the direct-hit entity; Entity.splashDamage does not,
+    // so temporarily disable direct target damage while applying the radius pass.
+    PANELCA_SplashDamageIgnoringDirectTarget( ent, other, radius, splashMax, knockback, MOD_ROCKET_SPLASH_S );
 
+    ent.explosionEffect( radius );
+    ent.freeEntity();
+}
+
+void PANELCA_OverriddenGrenadeThink( Entity @ent )
+{
+    int damageOverride = PANELCA_GetDamageOverrideValue( "grenadelauncher" );
+    int splashOverride = PANELCA_GetSplashOverrideValue( "grenadelauncher" );
+
+    float splashMax = splashOverride > 0
+        ? float( splashOverride )
+        : ( damageOverride > 0 ? float( damageOverride ) : float( ent.projectileMaxDamage ) );
+    int radius = int( ent.projectileSplashRadius );
+
+    ent.splashDamage( @ent.owner, radius, splashMax, ent.projectileMaxKnockback, 0, MOD_GRENADE_SPLASH_S );
     ent.explosionEffect( radius );
     ent.freeEntity();
 }
@@ -344,27 +403,35 @@ void PANELCA_ApplyProjectileOverride( Entity @projectile )
     // time, bypassing the GT_ThinkRules timing gap for close-range shots.
     if ( weaponKey == "rocketlauncher" && ( damageOverride > 0 || splashOverride > 0 ) )
     {
-        projectile.allowFunctionOverride = true;
+        if ( damageOverride > 0 )
+            PANELCA_ApplyProjectileDamageProfile( projectile, damageOverride );
+        if ( !projectile.allowFunctionOverride )
+            projectile.allowFunctionOverride = true;
         @projectile.touch = PANELCA_OverriddenRocketTouch;
         return;
     }
 
-    // For other projectiles (grenade, plasma), rewrite damage fields each frame.
+    // Grenades use native touch so they keep their bounce behavior. When splash
+    // differs from direct damage, a custom think handles timed/bounced explosions.
+    if ( weaponKey == "grenadelauncher" && ( damageOverride > 0 || splashOverride > 0 ) )
+    {
+        if ( damageOverride > 0 )
+            PANELCA_ApplyProjectileDamageProfile( projectile, damageOverride );
+
+        if ( splashOverride > 0 && splashOverride != damageOverride )
+        {
+            if ( !projectile.allowFunctionOverride )
+                projectile.allowFunctionOverride = true;
+            @projectile.think = PANELCA_OverriddenGrenadeThink;
+        }
+
+        return;
+    }
+
+    // For other projectiles (plasma), rewrite damage fields each frame.
     if ( damageOverride > 0 )
     {
-        int currentMaxDamage = projectile.projectileMaxDamage > 0 ? projectile.projectileMaxDamage : damageOverride;
-        int currentMinDamage = projectile.projectileMinDamage > 0 ? projectile.projectileMinDamage : 1;
-        int scaledMinDamage = currentMaxDamage > 0
-            ? int( float( damageOverride ) * float( currentMinDamage ) / float( currentMaxDamage ) )
-            : damageOverride;
-
-        if ( scaledMinDamage < 1 )
-            scaledMinDamage = 1;
-        if ( scaledMinDamage > damageOverride )
-            scaledMinDamage = damageOverride;
-
-        projectile.projectileMaxDamage = damageOverride;
-        projectile.projectileMinDamage = scaledMinDamage;
+        PANELCA_ApplyProjectileDamageProfile( projectile, damageOverride );
     }
 }
 
