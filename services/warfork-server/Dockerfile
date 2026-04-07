@@ -56,10 +56,15 @@ WORKDIR /opt/warfork
 COPY --from=warfork-dist /opt/warfork/ /opt/warfork/
 COPY --from=warfork-dist /opt/steamcmd/linux32/steamclient.so /opt/steam-runtime/linux32/steamclient.so
 COPY --from=warfork-dist /opt/steamcmd/linux64/steamclient.so /opt/steam-runtime/linux64/steamclient.so
+COPY services/warfork-server/gametypes/ /usr/local/share/warfork-custom-gametypes/
 COPY services/warfork-server/docker-entrypoint.sh /usr/local/bin/warfork-entrypoint
 COPY services/warfork-server/healthcheck.sh /usr/local/bin/warfork-healthcheck
 
-RUN chmod +x \
+RUN sed -i 's/\r$//' \
+    /usr/local/bin/warfork-entrypoint \
+    /usr/local/bin/warfork-healthcheck \
+    /usr/local/share/warfork-custom-gametypes/* \
+ && chmod +x \
     /usr/local/bin/warfork-entrypoint \
     /usr/local/bin/warfork-healthcheck \
     /opt/warfork/wf_server.x86_64 \
@@ -68,8 +73,10 @@ RUN chmod +x \
  && mkdir -p \
     /opt/steam-runtime/linux32 \
     /opt/steam-runtime/linux64 \
+    /usr/local/share/warfork-custom-gametypes \
     /var/lib/warfork/.local/share/warfork-2.1/basewf/docker \
     /var/lib/warfork/.local/share/warfork-2.1/basewf/configs/server/gametypes \
+    /var/lib/warfork/.local/share/warfork-2.1/basewf/progs/gametypes \
     /var/lib/warfork/.local/share/warfork-2.1/logs \
     /var/lib/warfork/.local/share/warfork-2.1/demos
 

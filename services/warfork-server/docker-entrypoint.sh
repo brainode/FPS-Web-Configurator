@@ -45,6 +45,7 @@ require_file() {
 
 WARFORK_INSTALL_DIR="${WARFORK_INSTALL_DIR:-/opt/warfork}"
 WARFORK_STEAM_RUNTIME_DIR="${WARFORK_STEAM_RUNTIME_DIR:-/opt/steam-runtime}"
+WARFORK_CUSTOM_GAMETYPES_DIR="${WARFORK_CUSTOM_GAMETYPES_DIR:-/usr/local/share/warfork-custom-gametypes}"
 WARFORK_HOME_ROOT="${WARFORK_HOME_ROOT:-/var/lib/warfork}"
 WARFORK_HOME_DIR="${WARFORK_HOME_DIR:-${WARFORK_HOME_ROOT}/.local/share/warfork-2.1}"
 STEAM_HOME_DIR="${WARFORK_HOME_ROOT}/.steam"
@@ -54,9 +55,10 @@ DIST_DEDICATED_CFG="${WARFORK_INSTALL_DIR}/basewf/dedicated_autoexec.cfg"
 require_file "${WARFORK_INSTALL_DIR}/wf_server.x86_64"
 require_file "$DIST_DEDICATED_CFG"
 
-WARFORK_GAMETYPE="${WARFORK_GAMETYPE:-$(read_cfg_value "$DIST_DEDICATED_CFG" "g_gametype")}"
-WARFORK_GAMETYPE="${WARFORK_GAMETYPE:-ca}"
-DIST_GAMETYPE_CFG="${WARFORK_INSTALL_DIR}/basewf/configs/server/gametypes/${WARFORK_GAMETYPE}.cfg"
+WARFORK_BASE_GAMETYPE="${WARFORK_BASE_GAMETYPE:-$(read_cfg_value "$DIST_DEDICATED_CFG" "g_gametype")}"
+WARFORK_BASE_GAMETYPE="${WARFORK_BASE_GAMETYPE:-ca}"
+WARFORK_GAMETYPE="${WARFORK_GAMETYPE:-$WARFORK_BASE_GAMETYPE}"
+DIST_GAMETYPE_CFG="${WARFORK_INSTALL_DIR}/basewf/configs/server/gametypes/${WARFORK_BASE_GAMETYPE}.cfg"
 
 require_file "$DIST_GAMETYPE_CFG"
 
@@ -113,6 +115,20 @@ WARFORK_INSTASHIELD="${WARFORK_INSTASHIELD:-${DEFAULT_INSTA_SHIELD:-0}}"
 WARFORK_PASSWORD="${WARFORK_PASSWORD:-}"
 WARFORK_RCON_PASSWORD="${WARFORK_RCON_PASSWORD:-}"
 WARFORK_OPERATOR_PASSWORD="${WARFORK_OPERATOR_PASSWORD:-}"
+WARFORK_CUSTOM_RULES="${WARFORK_CUSTOM_RULES:-0}"
+WARFORK_ALLOWED_WEAPONS="${WARFORK_ALLOWED_WEAPONS:-}"
+WARFORK_CA_LOADOUT_ENABLED="${WARFORK_CA_LOADOUT_ENABLED:-0}"
+WARFORK_CA_LOADOUT_INVENTORY="${WARFORK_CA_LOADOUT_INVENTORY:-}"
+WARFORK_CA_STRONG_AMMO="${WARFORK_CA_STRONG_AMMO:-}"
+WARFORK_CA_INFINITE_WEAPONS="${WARFORK_CA_INFINITE_WEAPONS:-}"
+WARFORK_CA_DAMAGE_OVERRIDES="${WARFORK_CA_DAMAGE_OVERRIDES:-}"
+WARFORK_CA_SPLASH_OVERRIDES="${WARFORK_CA_SPLASH_OVERRIDES:-}"
+WARFORK_CA_HEALING_WEAPONS="${WARFORK_CA_HEALING_WEAPONS:-}"
+WARFORK_CA_DEBUG_DAMAGE="${WARFORK_CA_DEBUG_DAMAGE:-0}"
+WARFORK_DISABLE_HEALTH="${WARFORK_DISABLE_HEALTH:-0}"
+WARFORK_DISABLE_ARMOR="${WARFORK_DISABLE_ARMOR:-0}"
+WARFORK_DISABLE_POWERUPS="${WARFORK_DISABLE_POWERUPS:-0}"
+WARFORK_GRAVITY="${WARFORK_GRAVITY:-}"
 WARFORK_LOG_FILE="${WARFORK_LOG_FILE:-logs/${DEFAULT_LOG_FILE:-wfconsole.log}}"
 WARFORK_LOG_APPEND="${WARFORK_LOG_APPEND:-${DEFAULT_LOG_APPEND:-1}}"
 WARFORK_AUTORECORD="${WARFORK_AUTORECORD:-${DEFAULT_AUTORECORD:-1}}"
@@ -124,6 +140,7 @@ WARFORK_DEMO_DIR_NAME="${WARFORK_DEMO_DIR_NAME:-demos}"
 MANAGED_BASEWF_DIR="${WARFORK_HOME_DIR}/basewf"
 MANAGED_DOCKER_DIR="${MANAGED_BASEWF_DIR}/docker"
 MANAGED_GAMETYPE_DIR="${MANAGED_BASEWF_DIR}/configs/server/gametypes"
+MANAGED_PROGS_GAMETYPE_DIR="${MANAGED_BASEWF_DIR}/progs/gametypes"
 MANAGED_LOG_DIR="${WARFORK_HOME_DIR}/logs"
 MANAGED_DEMO_DIR="${WARFORK_HOME_DIR}/${WARFORK_DEMO_DIR_NAME}"
 
@@ -134,6 +151,7 @@ mkdir -p \
     "${STEAM_HOME_DIR}/root/sdk64" \
     "$MANAGED_DOCKER_DIR" \
     "$MANAGED_GAMETYPE_DIR" \
+    "$MANAGED_PROGS_GAMETYPE_DIR" \
     "$MANAGED_LOG_DIR" \
     "$MANAGED_DEMO_DIR"
 
@@ -145,6 +163,16 @@ fi
 if [ -f "${WARFORK_STEAM_RUNTIME_DIR}/linux64/steamclient.so" ]; then
     ln -snf "${WARFORK_STEAM_RUNTIME_DIR}/linux64/steamclient.so" "${STEAM_HOME_DIR}/sdk64/steamclient.so"
     ln -snf "${WARFORK_STEAM_RUNTIME_DIR}/linux64/steamclient.so" "${STEAM_HOME_DIR}/root/sdk64/steamclient.so"
+fi
+
+if [ -f "${WARFORK_CUSTOM_GAMETYPES_DIR}/${WARFORK_GAMETYPE}.gt" ]; then
+    cp "${WARFORK_CUSTOM_GAMETYPES_DIR}/${WARFORK_GAMETYPE}.gt" "${MANAGED_PROGS_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.gt"
+fi
+if [ -f "${WARFORK_CUSTOM_GAMETYPES_DIR}/${WARFORK_GAMETYPE}.gtd" ]; then
+    cp "${WARFORK_CUSTOM_GAMETYPES_DIR}/${WARFORK_GAMETYPE}.gtd" "${MANAGED_PROGS_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.gtd"
+fi
+if [ -f "${WARFORK_CUSTOM_GAMETYPES_DIR}/${WARFORK_GAMETYPE}.as" ]; then
+    cp "${WARFORK_CUSTOM_GAMETYPES_DIR}/${WARFORK_GAMETYPE}.as" "${MANAGED_PROGS_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.as"
 fi
 
 cp "$DIST_DEDICATED_CFG" "${MANAGED_DOCKER_DIR}/original_dedicated_autoexec.cfg"
@@ -186,29 +214,95 @@ cp "$DIST_DEDICATED_CFG" "${MANAGED_DOCKER_DIR}/original_dedicated_autoexec.cfg"
     write_set "g_instagib" "$WARFORK_INSTAGIB"
     write_set "g_instajump" "$WARFORK_INSTAJUMP"
     write_set "g_instashield" "$WARFORK_INSTASHIELD"
+    if [ "$WARFORK_GAMETYPE" = "panelca" ]; then
+        write_set "g_allow_selfdamage" "1"
+    fi
     write_set "sv_defaultmap" "$WARFORK_START_MAP"
     write_set "g_maplist" "$WARFORK_MAPLIST"
     write_set "g_maprotation" "$WARFORK_MAPROTATION"
     write_set "g_scorelimit" "$WARFORK_SCORELIMIT"
     write_set "g_timelimit" "$WARFORK_TIMELIMIT"
+    if [ -n "$WARFORK_GRAVITY" ]; then
+        write_set "g_gravity" "$WARFORK_GRAVITY"
+    fi
 } > "${MANAGED_DOCKER_DIR}/runtime-overrides.cfg"
 
 cp "$DIST_GAMETYPE_CFG" "${MANAGED_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.cfg"
 {
     echo
     echo "// Generated by warfork-entrypoint."
-    echo "// These lines are appended after the distribution gametype file so user-managed values win."
-    printf 'echo "%s"\n' "docker managed ${WARFORK_GAMETYPE}.cfg overlay executed"
+    echo "// These lines are appended after the base gametype file so user-managed values win."
+    printf 'echo "%s"\n' "docker managed ${WARFORK_GAMETYPE}.cfg overlay executed (base: ${WARFORK_BASE_GAMETYPE})"
     write_set "g_maplist" "$WARFORK_MAPLIST"
     write_set "g_maprotation" "$WARFORK_MAPROTATION"
     write_set "g_scorelimit" "$WARFORK_SCORELIMIT"
     write_set "g_timelimit" "$WARFORK_TIMELIMIT"
+
+    if [ "$WARFORK_CUSTOM_RULES" = "1" ]; then
+        echo
+        echo "// Custom rules generated by warfork-entrypoint."
+        if [ "$WARFORK_CA_LOADOUT_ENABLED" = "1" ]; then
+            if [ -n "$WARFORK_CA_LOADOUT_INVENTORY" ]; then
+                write_set "g_noclass_inventory" "$WARFORK_CA_LOADOUT_INVENTORY"
+            fi
+            if [ -n "$WARFORK_CA_STRONG_AMMO" ]; then
+                write_set "g_class_strong_ammo" "$WARFORK_CA_STRONG_AMMO"
+            fi
+        fi
+
+        if [ "$WARFORK_GAMETYPE" = "panelca" ]; then
+            write_set "g_allow_selfdamage" "1"
+            write_set "g_panelca_allow_health" "$([ "$WARFORK_DISABLE_HEALTH" = "1" ] && printf '0' || printf '1')"
+            write_set "g_panelca_allow_armor" "$([ "$WARFORK_DISABLE_ARMOR" = "1" ] && printf '0' || printf '1')"
+            write_set "g_panelca_allow_powerups" "$([ "$WARFORK_DISABLE_POWERUPS" = "1" ] && printf '0' || printf '1')"
+            if [ -n "$WARFORK_ALLOWED_WEAPONS" ]; then
+                write_set "g_panelca_allowed_weapons" "$WARFORK_ALLOWED_WEAPONS"
+            fi
+            if [ -n "$WARFORK_CA_INFINITE_WEAPONS" ]; then
+                write_set "g_panelca_infinite_weapons" "$WARFORK_CA_INFINITE_WEAPONS"
+            fi
+            if [ -n "$WARFORK_CA_DAMAGE_OVERRIDES" ]; then
+                write_set "g_panelca_damage_overrides" "$WARFORK_CA_DAMAGE_OVERRIDES"
+            fi
+            if [ -n "$WARFORK_CA_SPLASH_OVERRIDES" ]; then
+                write_set "g_panelca_splash_overrides" "$WARFORK_CA_SPLASH_OVERRIDES"
+            fi
+            if [ -n "$WARFORK_CA_HEALING_WEAPONS" ]; then
+                write_set "g_panelca_healing_weapons" "$WARFORK_CA_HEALING_WEAPONS"
+            fi
+            if [ "$WARFORK_CA_DEBUG_DAMAGE" != "0" ]; then
+                write_set "g_panelca_debug_damage" "$WARFORK_CA_DEBUG_DAMAGE"
+            fi
+        fi
+
+    fi
 } >> "${MANAGED_GAMETYPE_DIR}/${WARFORK_GAMETYPE}.cfg"
 
 printf 'Warfork home directory: %s\n' "$WARFORK_HOME_DIR"
 printf 'Warfork gametype: %s\n' "$WARFORK_GAMETYPE"
+printf 'Warfork base gametype: %s\n' "$WARFORK_BASE_GAMETYPE"
 printf 'Warfork start map: %s\n' "$WARFORK_START_MAP"
 printf 'Warfork networking: %s fps / %s pps\n' "$WARFORK_SV_FPS" "$WARFORK_SV_PPS"
+if [ "$WARFORK_CUSTOM_RULES" = "1" ]; then
+    printf 'Warfork custom rules: enabled (map weapons: %s)\n' "${WARFORK_ALLOWED_WEAPONS:-none}"
+    if [ "$WARFORK_CA_LOADOUT_ENABLED" = "1" ]; then
+        printf 'Warfork CA loadout inventory: %s\n' "${WARFORK_CA_LOADOUT_INVENTORY:-default}"
+        printf 'Warfork CA strong ammo: %s\n' "${WARFORK_CA_STRONG_AMMO:-default}"
+        printf 'Warfork CA infinite weapons: %s\n' "${WARFORK_CA_INFINITE_WEAPONS:-none}"
+    fi
+    if [ -n "$WARFORK_CA_DAMAGE_OVERRIDES" ]; then
+        printf 'Warfork CA damage overrides: %s\n' "$WARFORK_CA_DAMAGE_OVERRIDES"
+    fi
+    if [ -n "$WARFORK_CA_SPLASH_OVERRIDES" ]; then
+        printf 'Warfork CA splash overrides: %s\n' "$WARFORK_CA_SPLASH_OVERRIDES"
+    fi
+    if [ -n "$WARFORK_CA_HEALING_WEAPONS" ]; then
+        printf 'Warfork CA healing weapons: %s\n' "$WARFORK_CA_HEALING_WEAPONS"
+    fi
+    if [ "$WARFORK_CA_DEBUG_DAMAGE" != "0" ]; then
+        printf 'Warfork CA damage debug: %s\n' "$WARFORK_CA_DEBUG_DAMAGE"
+    fi
+fi
 printf 'Warfork server port: %s/udp\n' "$WARFORK_SERVER_PORT"
 printf 'Warfork HTTP port: %s/tcp\n' "$WARFORK_HTTP_PORT"
 

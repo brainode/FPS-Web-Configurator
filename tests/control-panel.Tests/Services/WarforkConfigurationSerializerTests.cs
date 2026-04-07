@@ -142,4 +142,174 @@ public sealed class WarforkConfigurationSerializerTests
         Assert.Equal("rcon-secret", restored.RconPassword);
         Assert.Equal("join-secret", restored.ServerPassword);
     }
+
+    [Fact]
+    public void Serialize_AndDeserialize_RoundTripsClanArenaLoadout()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return", "pressure"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "electrobolt",
+                        Ammo = 99,
+                        InfiniteAmmo = true,
+                        DamageOverride = 99
+                    },
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "rocketlauncher",
+                        Ammo = 20,
+                        InfiniteAmmo = false,
+                        DamageOverride = 45,
+                        HealOnHit = true
+                    }
+                ]
+            }
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        var restored = WarforkConfigurationSerializer.Deserialize(json);
+
+        Assert.NotNull(restored.CustomRules);
+        Assert.True(restored.CustomRules!.ClanArenaLoadoutEnabled);
+        Assert.Collection(
+            restored.CustomRules.ClanArenaLoadout,
+            rocketlauncher =>
+            {
+                Assert.Equal("rocketlauncher", rocketlauncher.WeaponKey);
+                Assert.Equal(20, rocketlauncher.Ammo);
+                Assert.False(rocketlauncher.InfiniteAmmo);
+                Assert.Equal(45, rocketlauncher.DamageOverride);
+                Assert.True(rocketlauncher.HealOnHit);
+            },
+            electrobolt =>
+            {
+                Assert.Equal("electrobolt", electrobolt.WeaponKey);
+                Assert.Equal(99, electrobolt.Ammo);
+                Assert.True(electrobolt.InfiniteAmmo);
+                Assert.Equal(99, electrobolt.DamageOverride);
+                Assert.False(electrobolt.HealOnHit);
+            });
+    }
+
+    [Fact]
+    public void Serialize_AndDeserialize_RoundTripsGravity()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                Gravity = 500
+            }
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        var restored = WarforkConfigurationSerializer.Deserialize(json);
+
+        Assert.NotNull(restored.CustomRules);
+        Assert.Equal(500, restored.CustomRules!.Gravity);
+    }
+
+    [Fact]
+    public void Serialize_AndDeserialize_RoundTripsSplashDamageOverride()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "rocketlauncher",
+                        Ammo = 20,
+                        DamageOverride = 70,
+                        SplashDamageOverride = 30
+                    }
+                ]
+            }
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        var restored = WarforkConfigurationSerializer.Deserialize(json);
+
+        Assert.NotNull(restored.CustomRules);
+        Assert.Single(restored.CustomRules!.ClanArenaLoadout);
+        Assert.Equal(70, restored.CustomRules.ClanArenaLoadout[0].DamageOverride);
+        Assert.Equal(30, restored.CustomRules.ClanArenaLoadout[0].SplashDamageOverride);
+    }
+
+    [Fact]
+    public void Serialize_AndDeserialize_DropsSplashDamageOverride_ForUnsupportedWeapons()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout
+                    {
+                        WeaponKey = "electrobolt",
+                        Ammo = 15,
+                        SplashDamageOverride = 999
+                    }
+                ]
+            }
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        var restored = WarforkConfigurationSerializer.Deserialize(json);
+
+        Assert.Null(restored.CustomRules!.ClanArenaLoadout[0].SplashDamageOverride);
+    }
+
+    [Fact]
+    public void Serialize_AndDeserialize_RoundTripsPickupDisableFlags()
+    {
+        var settings = new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "return",
+            MapList = ["return"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                DisableHealthItems = true,
+                DisableArmorItems = false,
+                DisablePowerups = true
+            }
+        };
+
+        var json = WarforkConfigurationSerializer.Serialize(settings);
+        var restored = WarforkConfigurationSerializer.Deserialize(json);
+
+        Assert.NotNull(restored.CustomRules);
+        Assert.True(restored.CustomRules!.DisableHealthItems);
+        Assert.False(restored.CustomRules!.DisableArmorItems);
+        Assert.True(restored.CustomRules!.DisablePowerups);
+    }
 }
