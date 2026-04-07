@@ -263,7 +263,7 @@
                     <div>
                         <div class="mb-2">
                             <strong class="d-block mb-1">Clan Arena spawn loadout</strong>
-                            <span class="form-hint">Applies only when Match mode is <code>ca</code>. The panel writes <code>g_noclass_inventory</code> and <code>g_class_strong_ammo</code> into the custom CA runtime. Gunblade stays available. For weapons marked as infinite, the runtime keeps refilling their ammo during play. Damage override currently works for Electrobolt and projectile weapons; heal-on-hit currently works for Rocket Launcher and is implemented in the official AngelScript layer, not by patching binaries.</span>
+                            <span class="form-hint">Applies only when Match mode is <code>ca</code>. The panel writes <code>g_noclass_inventory</code> and <code>g_class_strong_ammo</code> into the custom CA runtime. Gunblade stays available. For weapons marked as infinite, the runtime keeps refilling their ammo during play. Damage override currently works for Electrobolt and projectile weapons; fire cooldown override requires the custom server binary.</span>
                         </div>
                         <label class="rule-toggle mb-3">
                             <input asp-for="Input.CustomRules.ClanArenaLoadoutEnabled" class="form-check-input" />
@@ -336,6 +336,19 @@
                                                            placeholder="Leave empty to use Damage override or stock" />
                                                     <div class="form-hint">Maximum splash damage at explosion centre; falls off to ~1 at radius edge. Set lower than Damage override for rocket-jump-friendly configs.</div>
                                                     <span asp-validation-for="Input.CustomRules.ClanArenaLoadout[i].SplashDamageOverride" class="text-danger small"></span>
+                                                </div>
+                                            }
+                                            @if (Model.SupportsFireCooldownOverride(loadoutRule.Key))
+                                            {
+                                                <div class="col-12">
+                                                    <label asp-for="Input.CustomRules.ClanArenaLoadout[i].FireCooldownMs" class="form-label"></label>
+                                                    <input asp-for="Input.CustomRules.ClanArenaLoadout[i].FireCooldownMs"
+                                                           class="form-control"
+                                                           min="1"
+                                                           max="60000"
+                                                           placeholder="Leave empty to keep stock fire rate" />
+                                                    <div class="form-hint">Milliseconds between shots. Example: <code>3000</code> makes Rocket Launcher fire once every 3 seconds.</div>
+                                                    <span asp-validation-for="Input.CustomRules.ClanArenaLoadout[i].FireCooldownMs" class="text-danger small"></span>
                                                 </div>
                                             }
                                             @if (Model.SupportsHealingMode(loadoutRule.Key))

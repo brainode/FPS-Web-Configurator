@@ -36,6 +36,19 @@ public sealed class WarforkWeaponsCatalogTests
         Assert.Equal(expected, WarforkWeaponsCatalog.SupportsHealingMode(key));
     }
 
+    [Theory]
+    [InlineData("machinegun", true)]
+    [InlineData("riotgun", true)]
+    [InlineData("grenadelauncher", true)]
+    [InlineData("rocketlauncher", true)]
+    [InlineData("plasmagun", true)]
+    [InlineData("lasergun", true)]
+    [InlineData("electrobolt", true)]
+    public void SupportsFireCooldownOverride_MatchesCatalog(string key, bool expected)
+    {
+        Assert.Equal(expected, WarforkWeaponsCatalog.SupportsFireCooldownOverride(key));
+    }
+
     // ── BuildDamageOverrideString ─────────────────────────────────────────────
 
     [Fact]
@@ -126,6 +139,45 @@ public sealed class WarforkWeaponsCatalogTests
         var result = WarforkWeaponsCatalog.BuildHealingWeaponsString(loadout);
 
         Assert.Equal(string.Empty, result);
+    }
+
+    // ── BuildFireCooldownOverrideString ──────────────────────────────────────
+
+    [Fact]
+    public void BuildFireCooldownOverrideString_EmptyLoadout_ReturnsEmpty()
+    {
+        var result = WarforkWeaponsCatalog.BuildFireCooldownOverrideString([]);
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void BuildFireCooldownOverrideString_ExcludesNullAndZeroOverrides()
+    {
+        var loadout = new[]
+        {
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "rocketlauncher", Ammo = 20, FireCooldownMs = null },
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "electrobolt",    Ammo = 15, FireCooldownMs = 0 },
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "plasmagun",      Ammo = 90, FireCooldownMs = 250 },
+        };
+
+        var result = WarforkWeaponsCatalog.BuildFireCooldownOverrideString(loadout);
+
+        Assert.Equal("plasmagun=250", result);
+    }
+
+    [Fact]
+    public void BuildFireCooldownOverrideString_MultipleWeapons_UseCatalogOrder()
+    {
+        var loadout = new[]
+        {
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "electrobolt",     Ammo = 15, FireCooldownMs = 2000 },
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "rocketlauncher",  Ammo = 20, FireCooldownMs = 3000 },
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "grenadelauncher", Ammo = 15, FireCooldownMs = 1500 },
+        };
+
+        var result = WarforkWeaponsCatalog.BuildFireCooldownOverrideString(loadout);
+
+        Assert.Equal("grenadelauncher=1500 rocketlauncher=3000 electrobolt=2000", result);
     }
 
     // ── BuildClanArenaInventory ───────────────────────────────────────────────
@@ -370,5 +422,18 @@ public sealed class WarforkWeaponsCatalogTests
         var normalized = WarforkWeaponsCatalog.NormalizeClanArenaLoadout(loadout);
 
         Assert.Equal(30, normalized[0].SplashDamageOverride);
+    }
+
+    [Fact]
+    public void NormalizeClanArenaLoadout_FireCooldownMs_PreservedForSupportedWeapons()
+    {
+        var loadout = new[]
+        {
+            new WarforkClanArenaWeaponLoadout { WeaponKey = "rocketlauncher", Ammo = 20, FireCooldownMs = 3000 },
+        };
+
+        var normalized = WarforkWeaponsCatalog.NormalizeClanArenaLoadout(loadout);
+
+        Assert.Equal(3000, normalized[0].FireCooldownMs);
     }
 }

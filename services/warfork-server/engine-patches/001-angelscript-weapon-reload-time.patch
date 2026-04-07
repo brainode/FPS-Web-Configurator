@@ -1,0 +1,50 @@
+diff --git a/source/game/g_ascript.cpp b/source/game/g_ascript.cpp
+index acc9da2..0075138 100644
+--- a/source/game/g_ascript.cpp
++++ b/source/game/g_ascript.cpp
+@@ -3206,6 +3206,37 @@ static void asFunc_ConfigString( int index, asstring_t *str )
+ 	trap_ConfigString( index, str->buffer );
+ }
+ 
++static void asFunc_SetWeaponReloadTime( int weapon, int strongReloadTime, int weakReloadTime )
++{
++	gs_weapon_definition_t *weapondef;
++
++	if( weapon <= WEAP_NONE || weapon >= WEAP_TOTAL )
++		return;
++
++	weapondef = GS_GetWeaponDef( weapon );
++	if( !weapondef )
++		return;
++
++	if( strongReloadTime > 0 )
++	{
++		if( strongReloadTime > 60000 )
++			strongReloadTime = 60000;
++
++		weapondef->firedef.reload_time = (unsigned int)strongReloadTime;
++	}
++
++	if( weakReloadTime > 0 )
++	{
++		if( weakReloadTime > 60000 )
++			weakReloadTime = 60000;
++
++		weapondef->firedef_weak.reload_time = (unsigned int)weakReloadTime;
++	}
++
++	G_PrecacheWeapondef( weapon, &weapondef->firedef );
++	G_PrecacheWeapondef( weapon, &weapondef->firedef_weak );
++}
++
+ static CScriptArrayInterface *asFunc_G_FindInRadius( asvec3_t *org, float radius )
+ {
+ 	asITypeInfo *ti = asEntityArrayType();
+@@ -3444,6 +3475,7 @@ static const asglobfuncs_t asGlobFuncs[] =
+ 	{ "void G_RegisterCommand( const String &in )", asFUNCTION(asFunc_RegisterCommand), NULL },
+ 	{ "void G_RegisterCallvote( const String &in, const String &in, const String &in, const String &in )", asFUNCTION(asFunc_RegisterCallvote), NULL },
+ 	{ "void G_ConfigString( int index, const String &in )", asFUNCTION(asFunc_ConfigString), NULL },
++	{ "void G_SetWeaponReloadTime( int weapon, int strongReloadTime, int weakReloadTime )", asFUNCTION(asFunc_SetWeaponReloadTime), NULL },
+ 
+ 	// projectile firing
+ 	{ "void G_FireInstaShot( const Vec3 &in origin, const Vec3 &in angles, int range, int damage, int knockback, int stun, Entity @owner )", asFUNCTION(asFunc_FireInstaShot), NULL },

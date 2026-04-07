@@ -106,7 +106,7 @@ public static class WarforkModuleCatalog
             return string.Empty;
         }
 
-        return GetRecommendedMaps(gametype).FirstOrDefault() ?? "return";
+        return GetRecommendedMaps(gametype).FirstOrDefault() ?? "wfca1";
     }
     private sealed class CatalogDoc
     {

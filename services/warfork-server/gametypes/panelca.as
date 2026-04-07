@@ -31,6 +31,7 @@ Cvar g_panelca_infinite_weapons( "g_panelca_infinite_weapons", "", 0 );
 Cvar g_panelca_damage_overrides( "g_panelca_damage_overrides", "", 0 );
 Cvar g_panelca_splash_overrides( "g_panelca_splash_overrides", "", 0 );
 Cvar g_panelca_healing_weapons( "g_panelca_healing_weapons", "", 0 );
+Cvar g_panelca_fire_cooldown_overrides( "g_panelca_fire_cooldown_overrides", "", 0 );
 Cvar g_panelca_debug_damage( "g_panelca_debug_damage", "0", 0 );
 Cvar g_panelca_armor_degradation( "g_armor_degradation", "0.66", 0 );
 Cvar g_panelca_armor_protection( "g_armor_protection", "0.66", 0 );
@@ -190,6 +191,60 @@ String PANELCA_ProjectileClassnameToWeaponKey( const String &in className )
         return "plasmagun";
 
     return "";
+}
+
+int PANELCA_WeaponKeyToTag( const String &in weaponKey )
+{
+    String lowered = weaponKey.tolower();
+
+    if ( lowered == "machinegun" )
+        return WEAP_MACHINEGUN;
+    if ( lowered == "riotgun" )
+        return WEAP_RIOTGUN;
+    if ( lowered == "grenadelauncher" )
+        return WEAP_GRENADELAUNCHER;
+    if ( lowered == "rocketlauncher" )
+        return WEAP_ROCKETLAUNCHER;
+    if ( lowered == "plasmagun" )
+        return WEAP_PLASMAGUN;
+    if ( lowered == "lasergun" )
+        return WEAP_LASERGUN;
+    if ( lowered == "electrobolt" )
+        return WEAP_ELECTROBOLT;
+
+    return WEAP_NONE;
+}
+
+void PANELCA_ApplyFireCooldownOverrides()
+{
+    if ( g_panelca_fire_cooldown_overrides.string.len() == 0 )
+        return;
+
+    for ( int i = 0; ; i++ )
+    {
+        String token = g_panelca_fire_cooldown_overrides.string.getToken( i );
+        if ( token.len() == 0 )
+            return;
+
+        uint sep = token.locate( "=", 0 );
+        if ( sep == token.length() )
+            continue;
+
+        String weaponKey = token.substr( 0, sep ).tolower();
+        int cooldownMs = token.substr( sep + 1 ).toInt();
+        if ( cooldownMs <= 0 )
+            continue;
+
+        if ( cooldownMs > 60000 )
+            cooldownMs = 60000;
+
+        int weaponTag = PANELCA_WeaponKeyToTag( weaponKey );
+        if ( weaponTag == WEAP_NONE )
+            continue;
+
+        G_SetWeaponReloadTime( weaponTag, cooldownMs, cooldownMs );
+        PANELCA_DebugDamagePrint( "fire cooldown override weapon=\"" + weaponKey + "\" ms=" + cooldownMs );
+    }
 }
 
 bool PANELCA_SupportsScoreDamageOverride( const String &in weaponKey )
@@ -1734,7 +1789,7 @@ void GT_InitGametype()
         config = "// '" + gametype.title + "' gametype configuration file\n"
                  + "// This config will be executed each time the gametype is started\n"
                  + "\n\n// map rotation\n"
-                 + "set g_maplist \"return pressure\" // list of maps in automatic rotation\n"
+                 + "set g_maplist \"wfca1 wfca2\" // list of maps in automatic rotation\n"
                  + "set g_maprotation \"0\"   // 0 = same map, 1 = in order, 2 = random\n"
                  + "\n// game settings\n"
                  + "set g_scorelimit \"11\"\n"
@@ -1763,6 +1818,7 @@ void GT_InitGametype()
                  + "set g_panelca_damage_overrides \"\"\n"
                  + "set g_panelca_splash_overrides \"\"\n"
                  + "set g_panelca_healing_weapons \"\"\n"
+                 + "set g_panelca_fire_cooldown_overrides \"\"\n"
                  + "set g_panelca_debug_damage \"0\"\n"
                  + "\necho \"" + gametype.name + ".cfg executed\"\n";
 
@@ -1839,10 +1895,13 @@ void GT_InitGametype()
 
     G_Print( "Gametype '" + gametype.title + "' initialized\n" );
 
+    PANELCA_ApplyFireCooldownOverrides();
+
     PANELCA_DebugDamagePrint( "init inventory=\"" + g_noclass_inventory.string
         + "\" ammo=\"" + g_class_strong_ammo.string
         + "\" damage_overrides=\"" + g_panelca_damage_overrides.string
         + "\" splash_overrides=\"" + g_panelca_splash_overrides.string
         + "\" healing_weapons=\"" + g_panelca_healing_weapons.string
+        + "\" fire_cooldown_overrides=\"" + g_panelca_fire_cooldown_overrides.string
         + "\"" );
 }

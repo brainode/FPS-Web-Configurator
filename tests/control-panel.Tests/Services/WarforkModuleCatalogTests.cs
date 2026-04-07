@@ -12,17 +12,17 @@ public sealed class WarforkModuleCatalogTests
     {
         var result = WarforkModuleCatalog.ResolveStartMap(
             "wfctf1",
-            ["return", "pressure"],
+            ["wfca1", "wfca2"],
             gametype: "ca");
 
-        Assert.Equal("return", result);
+        Assert.Equal("wfca1", result);
     }
 
     [Fact]
     public void ResolveStartMap_ReturnsEmpty_WhenPoolIsEmptyAndAllowEmptyIsTrue()
     {
         var result = WarforkModuleCatalog.ResolveStartMap(
-            startMap: "return",
+            startMap: "wfca1",
             selectedMaps: [],
             gametype: "ca",
             allowEmpty: true);
@@ -45,7 +45,7 @@ public sealed class WarforkModuleCatalogTests
     }
 
     [Theory]
-    [InlineData("ca", "return", true)]
+    [InlineData("ca", "wfca1", true)]
     [InlineData("ca", "wfdm1", true)]
     [InlineData("ffa", "wfda1", true)]
     [InlineData("ctf", "wfda5", true)]

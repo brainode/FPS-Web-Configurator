@@ -8,5 +8,7 @@ tmp-control-panel.*.log
 .artifacts/
 .tmp/
 tmp/
+_tmp_warfork_qfusion/
+_tmp_warsow_qfusion/
 .env
 .claude/

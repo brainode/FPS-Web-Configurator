@@ -4,7 +4,7 @@
       "key": "ca",
       "label": "Clan Arena",
       "description": "Round-based arena fights on the stock Warfork CA pool.",
-      "recommendedMaps": ["return", "pressure"],
+      "recommendedMaps": ["wfca1", "wfca2"],
       "defaultScorelimit": 11,
       "defaultTimelimit": 0
     },
@@ -109,7 +109,7 @@
     {
       "key": "clan-arena",
       "label": "Clan Arena",
-      "maps": ["return", "pressure"]
+      "maps": ["wfca1", "wfca2"]
     },
     {
       "key": "deathmatch",

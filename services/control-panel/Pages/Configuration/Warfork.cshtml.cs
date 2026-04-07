@@ -83,6 +83,9 @@ public sealed class WarforkModel(
     public bool SupportsHealingMode(string? weaponKey) =>
         WarforkWeaponsCatalog.SupportsHealingMode(weaponKey);
 
+    public bool SupportsFireCooldownOverride(string? weaponKey) =>
+        WarforkWeaponsCatalog.SupportsFireCooldownOverride(weaponKey);
+
     public async Task OnGetAsync(CancellationToken cancellationToken)
     {
         await LoadAsync(cancellationToken);
@@ -301,6 +304,14 @@ public sealed class WarforkModel(
                     "Splash damage override is only supported for projectile weapons (Grenade Launcher, Rocket Launcher, Plasmagun).");
             }
 
+            if (rule.FireCooldownMs is not null &&
+                !WarforkWeaponsCatalog.SupportsFireCooldownOverride(rule.Key))
+            {
+                ModelState.AddModelError(
+                    $"Input.CustomRules.ClanArenaLoadout[{i}].FireCooldownMs",
+                    "Fire cooldown override is not supported for this weapon.");
+            }
+
             if (rule.HealOnHit &&
                 !WarforkWeaponsCatalog.SupportsHealingMode(rule.Key))
             {
@@ -330,9 +341,9 @@ public sealed class WarforkModel(
 
         [Required]
         [Display(Name = "Start map")]
-        public string StartMap { get; set; } = "return";
+        public string StartMap { get; set; } = "wfca1";
 
-        public List<string> SelectedMaps { get; set; } = ["return", "pressure"];
+        public List<string> SelectedMaps { get; set; } = ["wfca1", "wfca2"];
 
         [Display(Name = "Instagib")]
         public bool Instagib { get; set; }
@@ -466,6 +477,11 @@ public sealed class WarforkModel(
                             rule.SplashDamageOverride = null;
                         }
 
+                        if (rule.FireCooldownMs <= 0 || !weapon.SupportsFireCooldownOverride)
+                        {
+                            rule.FireCooldownMs = null;
+                        }
+
                         if (!weapon.SupportsHealingMode)
                         {
                             rule.HealOnHit = false;
@@ -501,6 +517,9 @@ public sealed class WarforkModel(
                         SplashDamageOverride = WarforkWeaponsCatalog.SupportsSplashDamageOverride(rule.Key) && rule.SplashDamageOverride is > 0
                             ? rule.SplashDamageOverride
                             : null,
+                        FireCooldownMs = WarforkWeaponsCatalog.SupportsFireCooldownOverride(rule.Key) && rule.FireCooldownMs is > 0
+                            ? rule.FireCooldownMs
+                            : null,
                         HealOnHit = WarforkWeaponsCatalog.SupportsHealingMode(rule.Key) && rule.HealOnHit,
                     })),
             DisableHealthItems = DisableHealthItems,
@@ -532,6 +551,9 @@ public sealed class WarforkModel(
                                     : null,
                                 SplashDamageOverride = weapon?.SupportsSplashDamageOverride == true && rule.SplashDamageOverride is > 0
                                     ? rule.SplashDamageOverride
+                                    : null,
+                                FireCooldownMs = weapon?.SupportsFireCooldownOverride == true && rule.FireCooldownMs is > 0
+                                    ? rule.FireCooldownMs
                                     : null,
                                 HealOnHit = weapon?.SupportsHealingMode == true && rule.HealOnHit,
                             };
@@ -565,6 +587,10 @@ public sealed class WarforkModel(
         [Range(1, 9999)]
         [Display(Name = "Splash damage override")]
         public int? SplashDamageOverride { get; set; }
+
+        [Range(1, 60000)]
+        [Display(Name = "Fire cooldown, ms")]
+        public int? FireCooldownMs { get; set; }
 
         [Display(Name = "Heal on hit")]
         public bool HealOnHit { get; set; }

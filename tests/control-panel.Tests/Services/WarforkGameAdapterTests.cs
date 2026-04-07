@@ -31,8 +31,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             Instagib = true,
             Instajump = true
         });
@@ -49,8 +49,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"]
+            StartMap = "wfca1",
+            MapList = ["wfca1"]
         });
 
         var summary = _adapter.GetSummary(json);
@@ -64,8 +64,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             ServerPassword = "secret"
         });
 
@@ -80,8 +80,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"]
+            StartMap = "wfca1",
+            MapList = ["wfca1"]
         });
 
         var summary = _adapter.GetSummary(json);
@@ -95,8 +95,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             RconPassword = "secret"
         });
 
@@ -111,8 +111,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             RconPassword = string.Empty
         });
 
@@ -126,13 +126,13 @@ public sealed class WarforkGameAdapterTests
     {
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
-            StartMap = "return",
-            MapList = ["return"]
+            StartMap = "wfca1",
+            MapList = ["wfca1"]
         });
 
         var summary = _adapter.GetSummary(json);
 
-        Assert.Equal("RETURN", summary.StartMap);
+        Assert.Equal("WFCA1", summary.StartMap);
     }
 
     [Fact]
@@ -141,8 +141,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return", "pressure"]
+            StartMap = "wfca1",
+            MapList = ["wfca1", "wfca2"]
         });
 
         var summary = _adapter.GetSummary(json);
@@ -189,6 +189,7 @@ public sealed class WarforkGameAdapterTests
         Assert.Contains("WARFORK_CA_DAMAGE_OVERRIDES", env.Keys);
         Assert.Contains("WARFORK_CA_SPLASH_OVERRIDES", env.Keys);
         Assert.Contains("WARFORK_CA_HEALING_WEAPONS", env.Keys);
+        Assert.Contains("WARFORK_CA_FIRE_COOLDOWN_OVERRIDES", env.Keys);
     }
 
     [Fact]
@@ -213,13 +214,13 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return", "pressure"]
+            StartMap = "wfca1",
+            MapList = ["wfca1", "wfca2"]
         });
 
         var env = _adapter.GetContainerEnv(json);
 
-        Assert.Equal("return pressure", env["WARFORK_MAPLIST"]);
+        Assert.Equal("wfca1 wfca2", env["WARFORK_MAPLIST"]);
     }
 
     [Fact]
@@ -228,8 +229,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             CustomRules = new WarforkCustomRules
             {
                 Enabled = true,
@@ -256,6 +257,7 @@ public sealed class WarforkGameAdapterTests
                         Ammo = 20,
                         InfiniteAmmo = false,
                         DamageOverride = 45,
+                        FireCooldownMs = 3000,
                         HealOnHit = true
                     }
                 ]
@@ -272,6 +274,7 @@ public sealed class WarforkGameAdapterTests
         Assert.Equal("electrobolt", env["WARFORK_CA_INFINITE_WEAPONS"]);
         Assert.Equal("rocketlauncher=45 electrobolt=99", env["WARFORK_CA_DAMAGE_OVERRIDES"]);
         Assert.Equal("rocketlauncher", env["WARFORK_CA_HEALING_WEAPONS"]);
+        Assert.Equal("rocketlauncher=3000", env["WARFORK_CA_FIRE_COOLDOWN_OVERRIDES"]);
     }
 
     [Fact]
@@ -280,8 +283,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             CustomRules = new WarforkCustomRules { Enabled = true, Gravity = 500 }
         });
 
@@ -296,8 +299,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             CustomRules = new WarforkCustomRules { Enabled = true }
         });
 
@@ -312,8 +315,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             CustomRules = new WarforkCustomRules
             {
                 Enabled = true,
@@ -336,8 +339,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             CustomRules = new WarforkCustomRules
             {
                 Enabled = true,
@@ -367,8 +370,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             CustomRules = new WarforkCustomRules
             {
                 Enabled = true,
@@ -399,8 +402,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             CustomRules = new WarforkCustomRules
             {
                 Enabled = true,
@@ -426,8 +429,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             CustomRules = new WarforkCustomRules
             {
                 Enabled = true,
@@ -453,8 +456,8 @@ public sealed class WarforkGameAdapterTests
         var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
         {
             Gametype = "ca",
-            StartMap = "return",
-            MapList = ["return"],
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
             CustomRules = new WarforkCustomRules
             {
                 Enabled = true,
@@ -470,5 +473,30 @@ public sealed class WarforkGameAdapterTests
         var env = _adapter.GetContainerEnv(json);
 
         Assert.Equal("rocketlauncher", env["WARFORK_CA_HEALING_WEAPONS"]);
+    }
+
+    [Fact]
+    public void GetContainerEnv_WithFireCooldownOverride_SetsCooldownEnvVar()
+    {
+        var json = WarforkConfigurationSerializer.Serialize(new WarforkServerSettings
+        {
+            Gametype = "ca",
+            StartMap = "wfca1",
+            MapList = ["wfca1"],
+            CustomRules = new WarforkCustomRules
+            {
+                Enabled = true,
+                ClanArenaLoadoutEnabled = true,
+                ClanArenaLoadout =
+                [
+                    new WarforkClanArenaWeaponLoadout { WeaponKey = "plasmagun",      Ammo = 100, FireCooldownMs = 250 },
+                    new WarforkClanArenaWeaponLoadout { WeaponKey = "rocketlauncher", Ammo = 20,  FireCooldownMs = 3000 },
+                ]
+            }
+        });
+
+        var env = _adapter.GetContainerEnv(json);
+
+        Assert.Equal("rocketlauncher=3000 plasmagun=250", env["WARFORK_CA_FIRE_COOLDOWN_OVERRIDES"]);
     }
 }

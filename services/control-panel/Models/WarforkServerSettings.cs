@@ -5,8 +5,8 @@ namespace control_panel.Models;
 
 public sealed class WarforkServerSettings
 {
-    public string StartMap { get; set; } = "return";
-    public List<string> MapList { get; set; } = ["return", "pressure"];
+    public string StartMap { get; set; } = "wfca1";
+    public List<string> MapList { get; set; } = ["wfca1", "wfca2"];
     public string Gametype { get; set; } = "ca";
     public bool Instagib { get; set; }
     public bool Instajump { get; set; }
