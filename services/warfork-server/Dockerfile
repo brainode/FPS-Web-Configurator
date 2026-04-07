@@ -38,6 +38,8 @@ RUN set -eux; \
     cd /src/warfork-qfusion/source; \
     CC=clang-11 CXX=clang++-11 cmake -B ./build \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_C_FLAGS="-DPUBLIC_BUILD=1" \
+        -DCMAKE_CXX_FLAGS="-DPUBLIC_BUILD=1" \
         -DBUILD_STEAMLIB=0 \
         -DUSE_CRASHPAD=0 \
         -DUSE_GRAPHICS_NRI=0 \
